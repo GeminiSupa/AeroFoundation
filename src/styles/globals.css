@@ -1,0 +1,104 @@
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
+@layer base {
+  :root {
+    /* Primary Colors */
+    --primary-blue: #0D6EFD;
+    --secondary-blue: #1E90FF;
+    --success-green: #28A745;
+    --accent-green: #20C997;
+    --accent-orange: #FF9800;
+    --warning-yellow: #FFC107;
+    
+    /* Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 217 91% 52%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 52%;
+    --radius: 0.5rem;
+    --chart-1: 217 91% 52%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 36 100% 50%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 27 96% 61%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 52%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217 91% 52%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  /* --- THIS BLOCK IS THE FIX --- */
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  }
+  /* --- END OF FIX --- */
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto Condensed', system-ui, -apple-system, sans-serif;
+  }
+  
+  h1 {
+    font-size: 2rem;
+    line-height: 1.5;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.5;
+  }
+  
+  h3 {
+    font-size: 1.125rem;
+    line-height: 1.5;
+  }
+  
+  h4 {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
