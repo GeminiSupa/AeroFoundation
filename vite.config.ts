@@ -21,15 +21,15 @@ export default defineConfig({
             if (id.includes('node_modules')) {
               // Separate out some larger libraries
               if (id.includes('@radix-ui') || id.includes('lucide-react')) {
-                return 'ui';
+                return 'ui-kit';
               }
               if (id.includes('@supabase')) {
-                return 'supabase';
+                return 'supabase-lib';
               }
               if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router-dom')) {
-                return 'react-vendor';
+                return 'react-core';
               }
-              return 'vendor';
+              return 'vendor-lib';
             }
           }
         }
