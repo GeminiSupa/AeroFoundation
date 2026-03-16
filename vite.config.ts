@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig({
-  base: './',
+  // Use absolute asset paths so deep links work on Vercel SPA rewrites
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {
