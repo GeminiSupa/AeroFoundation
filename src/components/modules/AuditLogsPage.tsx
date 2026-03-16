@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Calendar, Search, Download, Filter, User, FileText, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Calendar, Search, Download, Filter, User, FileText, AlertTriangle, CheckCircle, Info, Shield } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getAuditLogs } from '../../lib/api/auditlogs';
+import { Skeleton } from '../ui/skeleton';
 
 interface AuditLog {
   id: string;
@@ -25,155 +28,29 @@ export function AuditLogsPage() {
   const [selectedModule, setSelectedModule] = useState('all');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
 
-  // Mock data
-  const auditLogs: AuditLog[] = [
-    {
-      id: '1',
-      timestamp: '2025-10-19 14:32:15',
-      user: 'Sarah Johnson',
-      userRole: 'Admin',
-      action: 'Created new user account',
-      module: 'User Management',
-      details: 'Created student account for John Smith (ID: ST2025-045)',
-      ipAddress: '192.168.1.105',
-      severity: 'info',
-      status: 'success'
+  const { data: logsData, isLoading, error } = useQuery({
+    queryKey: ['auditLogs', { selectedModule, selectedSeverity, searchQuery }],
+    queryFn: async () => {
+      const res = await getAuditLogs({ action: searchQuery || undefined });
+      if (!res.success) throw new Error(res.error);
+      return res.data || [];
     },
-    {
-      id: '2',
-      timestamp: '2025-10-19 14:15:42',
-      user: 'Michael Chen',
-      userRole: 'Teacher',
-      action: 'Updated grades',
-      module: 'Grading',
-      details: 'Updated final grades for Mathematics - Grade 10 (15 students)',
-      ipAddress: '192.168.1.112',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '3',
-      timestamp: '2025-10-19 13:58:03',
-      user: 'System',
-      userRole: 'System',
-      action: 'Failed login attempt',
-      module: 'Authentication',
-      details: 'Multiple failed login attempts from user: admin@school.edu',
-      ipAddress: '45.123.89.201',
-      severity: 'warning',
-      status: 'failed'
-    },
-    {
-      id: '4',
-      timestamp: '2025-10-19 13:45:22',
-      user: 'Emily Rodriguez',
-      userRole: 'Teacher',
-      action: 'Published assignment',
-      module: 'Assignments',
-      details: 'Published assignment "Chapter 7 Lab Report" to Science - Grade 11',
-      ipAddress: '192.168.1.118',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '5',
-      timestamp: '2025-10-19 12:30:11',
-      user: 'Sarah Johnson',
-      userRole: 'Admin',
-      action: 'Modified system settings',
-      module: 'Settings',
-      details: 'Changed academic year start date to 2025-09-01',
-      ipAddress: '192.168.1.105',
-      severity: 'critical',
-      status: 'success'
-    },
-    {
-      id: '6',
-      timestamp: '2025-10-19 11:22:45',
-      user: 'James Wilson',
-      userRole: 'Librarian',
-      action: 'Added library resource',
-      module: 'Library',
-      details: 'Added 25 new books to library inventory',
-      ipAddress: '192.168.1.125',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '7',
-      timestamp: '2025-10-19 10:15:33',
-      user: 'Finance System',
-      userRole: 'System',
-      action: 'Processed payment',
-      module: 'Finance',
-      details: 'Processed fee payment for student Emma Thompson ($1,200)',
-      ipAddress: '192.168.1.100',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '8',
-      timestamp: '2025-10-19 09:45:18',
-      user: 'Michael Chen',
-      userRole: 'Teacher',
-      action: 'Marked attendance',
-      module: 'Attendance',
-      details: 'Submitted attendance for Mathematics - Period 2 (28/30 present)',
-      ipAddress: '192.168.1.112',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '9',
-      timestamp: '2025-10-19 08:30:05',
-      user: 'System',
-      userRole: 'System',
-      action: 'Automated backup',
-      module: 'System',
-      details: 'Completed daily database backup (2.4 GB)',
-      ipAddress: '127.0.0.1',
-      severity: 'info',
-      status: 'success'
-    },
-    {
-      id: '10',
-      timestamp: '2025-10-18 16:55:42',
-      user: 'Sarah Johnson',
-      userRole: 'Admin',
-      action: 'Deleted user account',
-      module: 'User Management',
-      details: 'Removed graduated student account: David Lee (ID: ST2024-312)',
-      ipAddress: '192.168.1.105',
-      severity: 'warning',
-      status: 'success'
-    }
-  ];
+  });
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'info': return 'bg-blue-500/10 text-blue-400';
-      case 'warning': return 'bg-yellow-500/10 text-yellow-400';
-      case 'critical': return 'bg-red-500/10 text-red-400';
-      default: return 'bg-gray-500/10 text-gray-400';
-    }
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'info': return <Info className="h-4 w-4" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4" />;
-      case 'critical': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Info className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'bg-green-500/10 text-green-400';
-      case 'failed': return 'bg-red-500/10 text-red-400';
-      default: return 'bg-gray-500/10 text-gray-400';
-    }
-  };
+  const auditLogs: AuditLog[] = useMemo(() => {
+    return (logsData || []).map((l: any) => ({
+      id: l.id,
+      timestamp: (l.created_at || '').replace('T', ' ').slice(0, 19),
+      user: l.actor_name || 'Unknown',
+      userRole: '-',
+      action: l.action,
+      module: l.entity || '-',
+      details: typeof l.details === 'string' ? l.details : JSON.stringify(l.details || {}),
+      ipAddress: '-',
+      severity: 'info' as const,
+      status: 'success' as const,
+    }));
+  }, [logsData]);
 
   const filteredLogs = auditLogs.filter(log => {
     const matchesSearch = log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -189,83 +66,106 @@ export function AuditLogsPage() {
   const failedActions = auditLogs.filter(log => log.status === 'failed').length;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-white">Audit Logs</h1>
-          <p className="text-gray-400 mt-1">Track all system changes and user actions</p>
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
+            <Shield className="w-7 h-7 sm:w-8 sm:h-8" />
+            Audit Logs
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Track all system changes and user actions</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button variant="outline" className="w-full sm:w-auto">
           <Download className="mr-2 h-4 w-4" />
           Export Logs
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Total Logs</CardDescription>
-            <CardTitle className="text-white text-3xl">{auditLogs.length}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-400">Last 24 hours</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Logs</p>
+                <h2 className="mt-2 text-2xl font-bold">{auditLogs.length}</h2>
+                <Badge variant="secondary" className="mt-2">Last 24h</Badge>
+              </div>
+              <div className="bg-primary p-3 rounded-lg text-primary-foreground">
+                <FileText className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Critical Events</CardDescription>
-            <CardTitle className="text-white text-3xl text-red-500">{criticalLogs}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-400">Needs attention</p>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Critical Events</p>
+                <h2 className="mt-2 text-2xl font-bold">{criticalLogs}</h2>
+                <Badge variant="destructive" className="mt-2">Needs attention</Badge>
+              </div>
+              <div className="bg-destructive p-3 rounded-lg text-destructive-foreground">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Warnings</CardDescription>
-            <CardTitle className="text-white text-3xl text-yellow-500">{warningLogs}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-400">Monitor closely</p>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Warnings</p>
+                <h2 className="mt-2 text-2xl font-bold">{warningLogs}</h2>
+                <Badge variant="secondary" className="mt-2">Monitor</Badge>
+              </div>
+              <div className="bg-amber-500 p-3 rounded-lg text-white">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Failed Actions</CardDescription>
-            <CardTitle className="text-white text-3xl text-red-500">{failedActions}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-400">Security review</p>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Failed Actions</p>
+                <h2 className="mt-2 text-2xl font-bold">{failedActions}</h2>
+                <Badge variant="secondary" className="mt-2">Security</Badge>
+              </div>
+              <div className="bg-destructive p-3 rounded-lg text-destructive-foreground">
+                <Shield className="w-6 h-6" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <CardTitle className="text-white">Filters</CardTitle>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-700 border-gray-600 text-white"
+                className="pl-10"
               />
             </div>
             <Select value={selectedModule} onValueChange={setSelectedModule}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectContent>
                 <SelectItem value="all">All Modules</SelectItem>
                 <SelectItem value="User Management">User Management</SelectItem>
                 <SelectItem value="Grading">Grading</SelectItem>
@@ -278,10 +178,10 @@ export function AuditLogsPage() {
               </SelectContent>
             </Select>
             <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectContent>
                 <SelectItem value="all">All Severity Levels</SelectItem>
                 <SelectItem value="critical">Critical</SelectItem>
                 <SelectItem value="warning">Warning</SelectItem>
@@ -293,73 +193,84 @@ export function AuditLogsPage() {
       </Card>
 
       {/* Audit Logs Table */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Activity Log</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle>Activity Log</CardTitle>
+          <CardDescription>
             Detailed record of all system actions and changes
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-700">
-                <TableHead className="text-gray-300">Timestamp</TableHead>
-                <TableHead className="text-gray-300">User</TableHead>
-                <TableHead className="text-gray-300">Action</TableHead>
-                <TableHead className="text-gray-300">Module</TableHead>
-                <TableHead className="text-gray-300">Details</TableHead>
-                <TableHead className="text-gray-300">IP Address</TableHead>
-                <TableHead className="text-gray-300">Severity</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.map((log) => (
-                <TableRow key={log.id} className="border-gray-700">
-                  <TableCell className="text-gray-300">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {log.timestamp}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-white">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div>{log.user}</div>
-                        <div className="text-xs text-gray-500">{log.userRole}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-300">{log.action}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-gray-700 text-gray-300">
-                      {log.module}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-gray-400 text-sm max-w-xs truncate">
-                    {log.details}
-                  </TableCell>
-                  <TableCell className="text-gray-400 font-mono text-xs">
-                    {log.ipAddress}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getSeverityColor(log.severity)}>
-                      {getSeverityIcon(log.severity)}
-                      <span className="ml-1">{log.severity}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(log.status)}>
-                      {log.status === 'success' ? <CheckCircle className="h-3 w-3 mr-1" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
-                      {log.status}
-                    </Badge>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Module</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-10 w-full" /></TableCell></TableRow>
+                    ))}
+                  </>
+                ) : error ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Failed to load logs</TableCell></TableRow>
+                ) : filteredLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No audit logs found</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        {log.timestamp}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{log.user}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{log.action}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{log.module}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
+                      {log.details}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        log.severity === 'critical' ? 'destructive' :
+                        log.severity === 'warning' ? 'secondary' : 'default'
+                      }>
+                        {log.severity === 'info' ? <Info className="h-3 w-3 mr-1" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
+                        {log.severity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                        {log.status === 'success' ? <CheckCircle className="h-3 w-3 mr-1" /> : <AlertTriangle className="h-3 w-3 mr-1" />}
+                        {log.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

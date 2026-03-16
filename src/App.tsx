@@ -10,39 +10,48 @@ import { TeacherDashboard } from "./components/dashboards/TeacherDashboard";
 import { StudentDashboard } from "./components/dashboards/StudentDashboard";
 import { ParentDashboard } from "./components/dashboards/ParentDashboard";
 import { AIToolsPage } from "./components/modules/AIToolsPage";
-import { SchedulingPage } from "./components/modules/SchedulingPage";
-import { LeaveManagementPage } from "./components/modules/LeaveManagementPage";
 import { SettingsPage } from "./components/modules/SettingsPage";
 import { FinancePage } from "./components/modules/FinancePage";
 import { ReportsPage } from "./components/modules/ReportsPage";
-import { UsersPage } from "./components/modules/UsersPage";
-import { ClassesPage } from "./components/modules/ClassesPage";
+import { StudentsPage } from "./components/modules/StudentsPage";
 import { HRStaffPage } from "./components/modules/HRStaffPage";
+import { ParentsPage } from "./components/modules/ParentsPage";
 import { InventoryPage } from "./components/modules/InventoryPage";
-import { AuditLogsPage } from "./components/modules/AuditLogsPage";
 import { AnnouncementsPage } from "./components/modules/AnnouncementsPage";
 import { MessagesPage } from "./components/modules/MessagesPage";
+import { AttendanceReportPage } from "./components/modules/AttendanceReportPage";
 import { LessonPlanningPage } from "./components/modules/teacher/LessonPlanningPage";
-import { TeacherLeavePage } from "./components/modules/teacher/TeacherLeavePage";
 import { StudentGradesPage } from "./components/modules/student/StudentGradesPage";
 import { StudentAttendancePage } from "./components/modules/student/StudentAttendancePage";
-import { StudentLeavePage } from "./components/modules/student/StudentLeavePage";
 import { StudentToDoPage } from "./components/modules/student/StudentToDoPage";
 import { StudentPortfolioPage } from "./components/modules/student/StudentPortfolioPage";
+import { StudentSchedulePage } from "./components/modules/student/StudentSchedulePage";
 import { ParentChildProgressPage } from "./components/modules/parent/ParentChildProgressPage";
 import { ParentFeePaymentPage } from "./components/modules/parent/ParentFeePaymentPage";
-import { ParentChildLeavePage } from "./components/modules/parent/ParentChildLeavePage";
+import { FacilityBookingPage } from "./components/modules/FacilityBookingPage";
+import { LeavePortalPage } from "./components/modules/LeavePortalPage";
+import { LeaveAdminPage } from "./components/modules/LeaveAdminPage";
+import { LearningHub } from "./components/modules/learning-hub/LearningHub";
+import { TeacherSchedulePage } from "./components/modules/teacher/TeacherSchedulePage";
+import { ParentSchedulePage } from "./components/modules/parent/ParentSchedulePage";
+import { UserManualPage } from "./components/modules/UserManualPage";
 import { AIAssistant } from "./components/AIAssistant";
 import { Toaster } from "./components/ui/sonner";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+    <div className="flex h-screen bg-sap-shell dark:bg-sap-shell">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar />
       </div>
+      
+      {/* Mobile/Desktop Content */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">{children}</main>
+      </div>
+      
       <AIAssistant />
     </div>
   );
@@ -56,73 +65,78 @@ function AppRoutes() {
       
       {/* Protected routes with role-based access */}
       <Route path="/admin-dashboard" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><AdminDashboard /></AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/admin-users" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AppLayout><UsersPage /></AppLayout>
+      <Route path="/admin-learning-hub" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><LearningHub /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin-students" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><StudentsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin-parents" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><ParentsPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-hr-staff" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><HRStaffPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-inventory" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><InventoryPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-ai-tools" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><AIToolsPage /></AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/admin-classes" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AppLayout><ClassesPage /></AppLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin-scheduling" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AppLayout><SchedulingPage /></AppLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/admin-leave" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AppLayout><LeaveManagementPage /></AppLayout>
-        </ProtectedRoute>
-      } />
       <Route path="/admin-finance" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><FinancePage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-reports" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><ReportsPage /></AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/admin-audit-logs" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AppLayout><AuditLogsPage /></AppLayout>
+      <Route path="/admin-leave" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><LeaveAdminPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin-attendance" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><AttendanceReportPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-announcements" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><AnnouncementsPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-messages" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><MessagesPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/admin-settings" element={
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
           <AppLayout><SettingsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin-manual" element={
+        <ProtectedRoute allowedRoles={['admin', 'owner', 'super_admin']}>
+          <AppLayout><UserManualPage /></AppLayout>
         </ProtectedRoute>
       } />
 
@@ -132,19 +146,29 @@ function AppRoutes() {
           <AppLayout><TeacherDashboard /></AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/teacher-classes" element={
-        <ProtectedRoute allowedRoles={['teacher']}>
-          <AppLayout><ClassesPage /></AppLayout>
-        </ProtectedRoute>
-      } />
       <Route path="/teacher-lesson-planning" element={
         <ProtectedRoute allowedRoles={['teacher']}>
           <AppLayout><LessonPlanningPage /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/teacher-learning-hub" element={
+        <ProtectedRoute allowedRoles={['teacher']}>
+          <AppLayout><LearningHub /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/teacher-schedule" element={
+        <ProtectedRoute allowedRoles={['teacher']}>
+          <AppLayout><TeacherSchedulePage /></AppLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/teacher-leave" element={
         <ProtectedRoute allowedRoles={['teacher']}>
-          <AppLayout><TeacherLeavePage /></AppLayout>
+          <AppLayout><LeavePortalPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/facility-booking" element={
+        <ProtectedRoute allowedRoles={['teacher', 'student']}>
+          <AppLayout><FacilityBookingPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/teacher-announcements" element={
@@ -160,6 +184,11 @@ function AppRoutes() {
       <Route path="/teacher-settings" element={
         <ProtectedRoute allowedRoles={['teacher']}>
           <AppLayout><SettingsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/teacher-manual" element={
+        <ProtectedRoute allowedRoles={['teacher']}>
+          <AppLayout><UserManualPage /></AppLayout>
         </ProtectedRoute>
       } />
 
@@ -191,7 +220,17 @@ function AppRoutes() {
       } />
       <Route path="/student-leave" element={
         <ProtectedRoute allowedRoles={['student']}>
-          <AppLayout><StudentLeavePage /></AppLayout>
+          <AppLayout><LeavePortalPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/student-learning-hub" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <AppLayout><LearningHub /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/student-schedule" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <AppLayout><StudentSchedulePage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/student-announcements" element={
@@ -209,6 +248,11 @@ function AppRoutes() {
           <AppLayout><SettingsPage /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/student-manual" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <AppLayout><UserManualPage /></AppLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Parent routes */}
       <Route path="/parent-dashboard" element={
@@ -221,6 +265,16 @@ function AppRoutes() {
           <AppLayout><ParentChildProgressPage /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/parent-learning-hub" element={
+        <ProtectedRoute allowedRoles={['parent']}>
+          <AppLayout><LearningHub /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/parent-schedule" element={
+        <ProtectedRoute allowedRoles={['parent']}>
+          <AppLayout><ParentSchedulePage /></AppLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/parent-fees" element={
         <ProtectedRoute allowedRoles={['parent']}>
           <AppLayout><ParentFeePaymentPage /></AppLayout>
@@ -228,7 +282,7 @@ function AppRoutes() {
       } />
       <Route path="/parent-leave" element={
         <ProtectedRoute allowedRoles={['parent']}>
-          <AppLayout><ParentChildLeavePage /></AppLayout>
+          <AppLayout><LeavePortalPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/parent-announcements" element={
@@ -244,6 +298,11 @@ function AppRoutes() {
       <Route path="/parent-settings" element={
         <ProtectedRoute allowedRoles={['parent']}>
           <AppLayout><SettingsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/parent-manual" element={
+        <ProtectedRoute allowedRoles={['parent']}>
+          <AppLayout><UserManualPage /></AppLayout>
         </ProtectedRoute>
       } />
 

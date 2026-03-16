@@ -59,13 +59,15 @@ export function StudentGradesPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h2 className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6" />
-          My Grades
-        </h2>
-        <p className="text-muted-foreground">View your academic performance</p>
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-student">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-student text-white">
+            <BookOpen className="w-5 h-5" />
+          </span>
+          <span>My Grades</span>
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base">View your academic performance</p>
       </div>
 
       {/* Overview Stats */}
@@ -222,7 +224,7 @@ export function StudentGradesPage() {
                 Get a detailed PDF report of your academic performance
               </p>
             </div>
-            <Button>
+            <Button className="w-full sm:w-auto bg-role-student hover:bg-role-student/90">
               <Download className="w-4 h-4 mr-2" />
               Download Report
             </Button>

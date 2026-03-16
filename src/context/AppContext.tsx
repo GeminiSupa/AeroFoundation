@@ -3,10 +3,27 @@ import { User, UserRole } from '../types';
 import { getSession, supabase } from '../lib/supabaseClient';
 import { getCurrentUserProfile } from '../lib/api/auth';
 
+const THEME_STORAGE_KEY = 'app-theme';
+
+function getStoredTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'light';
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === 'dark' || stored === 'light') return stored;
+  return 'light';
+}
+
+function applyTheme(theme: 'light' | 'dark') {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (_) {}
+}
+
 interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
   toggleTheme: () => void;
   isLoading: boolean;
 }
@@ -15,8 +32,17 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setThemeState] = useState<'light' | 'dark'>(getStoredTheme);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  const setTheme = (next: 'light' | 'dark') => {
+    setThemeState(next);
+    applyTheme(next);
+  };
 
   useEffect(() => {
     // Check for existing Supabase session on mount
@@ -61,8 +87,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark');
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
   };
 
   if (isLoading) {
@@ -77,7 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ user, setUser, theme, toggleTheme, isLoading }}>
+    <AppContext.Provider value={{ user, setUser, theme, setTheme, toggleTheme, isLoading }}>
       {children}
     </AppContext.Provider>
   );

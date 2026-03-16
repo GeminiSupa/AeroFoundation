@@ -1,31 +1,53 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { User, TrendingUp, Calendar, DollarSign, Bot } from 'lucide-react';
+import { User, TrendingUp, Calendar, DollarSign } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { AIInsights } from '../AIInsights';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getParentDashboardStats } from '../../lib/api/dashboard';
+import { getParentFeeList } from '../../lib/api/finance';
 
 export function ParentDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
+  const { data: stats } = useQuery({
+    queryKey: ['parentDashboardStats', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const res = await getParentDashboardStats(user.id);
+      if (!res.success) throw new Error(res.error);
+      return res.data!;
+    },
+    enabled: !!user?.id,
+  });
 
-  const invoices = [
-    { id: 1, child: 'Sarah Smith', description: 'Tuition Fee - October', amount: '$500', status: 'unpaid', dueDate: 'Oct 25' },
-    { id: 2, child: 'Michael Smith', description: 'Tuition Fee - October', amount: '$500', status: 'unpaid', dueDate: 'Oct 25' },
-  ];
+  const { data: parentFees = [] } = useQuery({
+    queryKey: ['parentFeeList', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await getParentFeeList(user.id);
+      if (!res.success) return [];
+      return res.data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1>Welcome, {user?.name}</h1>
-        <p className="text-muted-foreground">Monitor your children's academic progress and activities</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-role-parent">Welcome, {user?.name}</h1>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
+          {stats
+            ? `You have ${stats.childrenCount || 0} child${(stats.childrenCount || 0) === 1 ? '' : 'ren'} linked and ${stats.unpaidFees || 0} unpaid fee${(stats.unpaidFees || 0) === 1 ? '' : 's'}.`
+            : 'Monitor your children&apos;s academic progress and activities.'}
+        </p>
       </div>
 
       {/* Children Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {user?.children?.map((child) => (
           <Card key={child.id}>
             <CardHeader>
@@ -60,14 +82,14 @@ export function ParentDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-progress')}>
                   View Grades
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/parent-leave')}>
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-leave')}>
                   Request Leave
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-progress')}>
                   Attendance
                 </Button>
               </div>
@@ -75,8 +97,6 @@ export function ParentDashboard() {
           </Card>
         ))}
       </div>
-
-      <AIInsights role="parent" />
 
       <Tabs defaultValue="payments">
         <TabsList>
@@ -92,34 +112,71 @@ export function ParentDashboard() {
                   <CardDescription>Manage tuition and fees</CardDescription>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total Pending</p>
-                  <h2 className="text-red-600">$1,000</h2>
+                  <p className="text-sm text-muted-foreground">Unpaid fees</p>
+                  <h2 className="text-red-600">
+                    {stats ? `${stats.unpaidFees || 0} invoice${(stats.unpaidFees || 0) === 1 ? '' : 's'}` : '—'}
+                  </h2>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {invoices.map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-orange-500 p-3 rounded-lg text-white">
-                        <DollarSign className="w-5 h-5" />
+              {parentFees.length === 0 ? (
+                <>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    You have no unpaid invoices right now.
+                  </p>
+                  <Button size="sm" onClick={() => navigate('/parent-fees')}>
+                    View Fees
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  {parentFees.slice(0, 5).map((fee: any) => (
+                    <div
+                      key={fee.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="bg-orange-500 p-2 rounded-lg text-white">
+                          <DollarSign className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm">
+                            {fee.fee_type || 'Fee'} • {fee.student_name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            Due: {fee.due_date || 'N/A'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4>{invoice.description}</h4>
-                        <p className="text-sm text-muted-foreground">{invoice.child} • Due: {invoice.dueDate}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p>{invoice.amount}</p>
-                        <Badge variant="destructive">{invoice.status}</Badge>
+                        <p className="text-sm">
+                          ${Number(fee.amount || 0).toFixed(2)}
+                        </p>
+                        <Badge
+                          variant={
+                            fee.status === 'unpaid'
+                              ? 'destructive'
+                              : fee.status === 'overdue'
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                          className="mt-1"
+                        >
+                          {fee.status}
+                        </Badge>
                       </div>
-                      <Button size="sm" onClick={() => navigate('/parent-fees')}>Pay Now</Button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate('/parent-fees')}
+                  >
+                    View & Pay All Fees
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

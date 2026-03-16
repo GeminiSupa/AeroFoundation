@@ -17,6 +17,22 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        // Role-based variants
+        admin:
+          "border-transparent bg-role-admin text-white [a&]:hover:bg-role-admin/90",
+        teacher:
+          "border-transparent bg-role-teacher text-white [a&]:hover:bg-role-teacher/90",
+        student:
+          "border-transparent bg-role-student text-white [a&]:hover:bg-role-student/90",
+        parent:
+          "border-transparent bg-role-parent text-white [a&]:hover:bg-role-parent/90",
+        // Semantic variants
+        positive:
+          "border-transparent bg-sap-positive text-white [a&]:hover:bg-sap-positive/90",
+        negative:
+          "border-transparent bg-sap-negative text-white [a&]:hover:bg-sap-negative/90",
+        critical:
+          "border-transparent bg-sap-critical text-white [a&]:hover:bg-sap-critical/90",
       },
     },
     defaultVariants: {

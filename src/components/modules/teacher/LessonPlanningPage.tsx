@@ -168,17 +168,22 @@ export function LessonPlanningPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-white">Lesson Planning</h1>
-          <p className="text-gray-400 mt-1">Create, organize, and manage your lesson plans</p>
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-teacher">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-teacher text-white">
+              <BookOpen className="w-5 h-5" />
+            </span>
+            <span>Lesson Planning</span>
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Create, organize, and manage your lesson plans</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isAIAssistOpen} onOpenChange={setIsAIAssistOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-orange-500 text-orange-400 hover:bg-orange-500/10">
+              <Button variant="outline" className="border-role-teacher text-role-teacher hover:bg-role-teacher/10">
                 <Sparkles className="mr-2 h-4 w-4" />
                 AI Lesson Assistant
               </Button>
@@ -304,7 +309,7 @@ export function LessonPlanningPage() {
           </Dialog>
           <Dialog open={isAddLessonOpen} onOpenChange={setIsAddLessonOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full sm:w-auto bg-role-teacher hover:bg-role-teacher/90 text-white">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Lesson
               </Button>
@@ -474,7 +479,7 @@ export function LessonPlanningPage() {
                   <Button variant="outline" onClick={handleSaveLessonDraft} className="border-gray-600 text-gray-300">
                     Save as Draft
                   </Button>
-                  <Button onClick={handlePublishLesson} className="bg-blue-600 hover:bg-blue-700">Publish Lesson</Button>
+                  <Button onClick={handlePublishLesson} className="bg-role-teacher hover:bg-role-teacher/90 text-white">Publish Lesson</Button>
                 </div>
               </div>
             </DialogContent>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,9 +10,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Sparkles } from 'lucide-react';
+import { Lock, Mail, Sparkles, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { signIn } from '../../lib/api/auth';
 import { useApp } from '../../context/AppContext';
+import { getDashboardRole } from '../../utils/roles';
+import { supabase } from '../../lib/supabaseClient';
 
 // Login form schema with Zod validation
 const loginSchema = z.object({
@@ -24,6 +27,30 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginPage() {
   const navigate = useNavigate();
   const { setUser } = useApp();
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession()
+      .then(({ error }) => {
+        if (cancelled) return;
+        if (error) setConnectionError(error.message);
+        else setConnectionError(null);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        const msg = err?.message || '';
+        if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
+          setConnectionError(
+            'Cannot reach Supabase (ERR_NAME_NOT_RESOLVED). In .env.local set VITE_SUPABASE_URL to the exact Project URL from Supabase Dashboard → your project → Settings → API. Copy "Project URL" and "anon public" key, save, then restart the dev server.'
+          );
+        } else {
+          setConnectionError(msg || 'Connection check failed');
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -48,7 +75,8 @@ export function LoginPage() {
         
         setUser(userData as any);
         toast.success('Login successful!');
-        navigate(`/${result.data.role}-dashboard`);
+        const dashboardRole = getDashboardRole(result.data.role);
+        navigate(`/${dashboardRole}-dashboard`);
       } else {
         const errorMessage = result.error || 'Login failed. Please check your credentials.';
         toast.error(errorMessage);
@@ -56,7 +84,10 @@ export function LoginPage() {
     },
     onError: (error: any) => {
       console.error('Login error:', error);
-      const errorMessage = error.message || 'Login failed. Please try again.';
+      let errorMessage = error?.message || 'Login failed. Please try again.';
+      if (errorMessage.toLowerCase().includes('failed to fetch')) {
+        errorMessage = 'Cannot reach server. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local (from Supabase Dashboard > Settings > API), then restart the dev server.';
+      }
       toast.error(errorMessage);
     },
   });
@@ -78,6 +109,12 @@ export function LoginPage() {
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
+          {connectionError && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <span>{connectionError}</span>
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -114,11 +151,24 @@ export function LoginPage() {
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder="Enter your password"
-                          type="password"
-                          className="pl-9"
+                          type={showPassword ? 'text' : 'password'}
+                          className="pl-9 pr-10"
                           autoComplete="current-password"
                           {...field}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Toggle password visibility"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -128,7 +178,7 @@ export function LoginPage() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-[#0D6EFD] hover:bg-[#0D6EFD]/90" 
+                className="w-full min-h-[44px] touch-manipulation bg-[#0D6EFD] hover:bg-[#0D6EFD]/90" 
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? 'Logging in...' : 'Login'}

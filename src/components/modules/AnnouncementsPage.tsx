@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { Megaphone, Plus, Pin, Users, Calendar, AlertCircle, CheckCircle, Info, Edit, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { isElevatedRole } from '../../utils/roles';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '../../lib/api/announcements';
 import { Checkbox } from '../ui/checkbox';
 
 interface Announcement {
@@ -42,89 +45,34 @@ export function AnnouncementsPage() {
     audiences: [] as string[]
   });
 
-  const canCreate = user?.role === 'admin' || user?.role === 'teacher';
+  const canCreate = isElevatedRole(user?.role) || user?.role === 'teacher';
 
-  // Mock data
-  const announcements: Announcement[] = [
-    {
-      id: '1',
-      title: 'Midterm Exam Schedule Released',
-      content: 'The midterm examination schedule for Fall 2025 has been published. Please check the academic calendar for your exam dates and times. Make sure to arrive 15 minutes early for all exams.',
-      author: 'Dr. Sarah Johnson',
-      authorRole: 'Principal',
-      date: '2025-10-18',
-      priority: 'high',
-      category: 'Academic',
-      audience: ['students', 'parents', 'teachers'],
-      pinned: true,
-      views: 342
+  // Live announcements
+  const queryClient = useQueryClient();
+  const { data: announcementsData, isLoading, error } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: async () => {
+      const res = await getAnnouncements();
+      if (!res.success) throw new Error(res.error);
+      return res.data || [];
     },
-    {
-      id: '2',
-      title: 'Parent-Teacher Conference Sign-ups Open',
-      content: 'Sign-ups for Fall parent-teacher conferences are now open. Conferences will be held October 26-27. Please use the portal to book your preferred time slots.',
-      author: 'Admin Team',
-      authorRole: 'Administration',
-      date: '2025-10-17',
+  });
+
+  const announcements: Announcement[] = useMemo(() => {
+    return (announcementsData || []).map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      content: a.body,
+      author: a.author_name || 'Admin',
+      authorRole: '-',
+      date: (a.created_at || '').slice(0, 10),
       priority: 'medium',
-      category: 'Events',
-      audience: ['parents', 'teachers'],
-      pinned: true,
-      views: 256
-    },
-    {
-      id: '3',
-      title: 'Science Fair Registration Deadline',
-      content: 'Reminder: The deadline to register for the Annual Science Fair is October 25th. All interested students must submit their project proposals by this date.',
-      author: 'Emily Rodriguez',
-      authorRole: 'Science Department Head',
-      date: '2025-10-16',
-      priority: 'medium',
-      category: 'Academic',
-      audience: ['students'],
-      pinned: false,
-      views: 189
-    },
-    {
-      id: '4',
-      title: 'New Library Hours',
-      content: 'Starting next week, the library will extend its hours on weekdays until 6 PM to accommodate after-school study sessions. Weekend hours remain unchanged.',
-      author: 'James Wilson',
-      authorRole: 'Librarian',
-      date: '2025-10-15',
-      priority: 'low',
-      category: 'Facilities',
-      audience: ['students', 'teachers'],
-      pinned: false,
-      views: 134
-    },
-    {
-      id: '5',
-      title: 'Winter Sports Tryouts Announced',
-      content: 'Tryouts for winter sports teams (Basketball, Swimming, Wrestling) will begin November 1st. All students interested in participating should register with Coach Martinez by October 28th.',
-      author: 'Coach Martinez',
-      authorRole: 'Athletics Director',
-      date: '2025-10-14',
-      priority: 'medium',
-      category: 'Sports',
-      audience: ['students', 'parents'],
-      pinned: false,
-      views: 221
-    },
-    {
-      id: '6',
-      title: 'Campus Wi-Fi Maintenance',
-      content: 'The IT department will perform network maintenance on Saturday, October 21st from 2-4 AM. Wi-Fi services may be briefly interrupted during this time.',
-      author: 'IT Department',
-      authorRole: 'Technical Services',
-      date: '2025-10-13',
-      priority: 'low',
-      category: 'Technology',
-      audience: ['students', 'teachers', 'parents'],
-      pinned: false,
-      views: 98
-    }
-  ];
+      category: 'General',
+      audience: a.audience || ['admin','teacher','student','parent'],
+      pinned: !!a.published,
+      views: 0,
+    }));
+  }, [announcementsData]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -151,25 +99,56 @@ export function AnnouncementsPage() {
   const pinnedAnnouncements = filteredAnnouncements.filter(a => a.pinned);
   const regularAnnouncements = filteredAnnouncements.filter(a => !a.pinned);
 
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => createAnnouncement(payload),
+    onSuccess: () => {
+      toast.success('Announcement Published Successfully! ✅');
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      setIsCreateOpen(false);
+      setEditingAnnouncement(null);
+      setFormData({ title: '', content: '', category: '', priority: '', pinned: false, audiences: [] });
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to publish announcement'),
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: any) => updateAnnouncement(id, updates),
+    onSuccess: () => {
+      toast.success('Announcement Updated Successfully! ✅');
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      setIsCreateOpen(false);
+      setEditingAnnouncement(null);
+      setFormData({ title: '', content: '', category: '', priority: '', pinned: false, audiences: [] });
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to update announcement'),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteAnnouncement(id),
+    onSuccess: () => {
+      toast.success('Announcement Deleted');
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      setDeleteAnnouncementId(null);
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to delete announcement'),
+  });
+
   const handlePublishAnnouncement = () => {
     if (!formData.title || !formData.content || !formData.category || !formData.priority) {
       toast.error('Please fill in all required fields');
       return;
     }
-    
+    const payload = {
+      title: formData.title,
+      body: formData.content,
+      audience: formData.audiences.length ? formData.audiences : ['admin','teacher','student','parent'],
+      published: true,
+      author_id: user?.id || null,
+      author_name: user?.name || null,
+    } as any;
     if (editingAnnouncement) {
-      toast.success('Announcement Updated Successfully! ✅', {
-        description: 'The announcement has been updated and is now visible to selected audiences.'
-      });
+      updateMutation.mutate({ id: editingAnnouncement.id, updates: payload });
     } else {
-      toast.success('Announcement Published Successfully! ✅', {
-        description: 'Your announcement is now visible to selected audiences.'
-      });
+      createMutation.mutate(payload);
     }
-    
-    setIsCreateOpen(false);
-    setEditingAnnouncement(null);
-    setFormData({ title: '', content: '', category: '', priority: '', pinned: false, audiences: [] });
   };
 
   const handleEditAnnouncement = (announcement: Announcement) => {
@@ -186,10 +165,8 @@ export function AnnouncementsPage() {
   };
 
   const handleDeleteAnnouncement = () => {
-    toast.success('Announcement Deleted', {
-      description: 'The announcement has been removed from the system.'
-    });
-    setDeleteAnnouncementId(null);
+    if (!deleteAnnouncementId) return;
+    deleteMutation.mutate(deleteAnnouncementId);
   };
 
   const toggleAudience = (audience: string) => {
@@ -202,12 +179,15 @@ export function AnnouncementsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-white">Announcements</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-module-announcements">
+            <Megaphone className="w-7 h-7 sm:w-8 sm:h-8" />
+            Announcements
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {canCreate 
               ? 'View and manage school-wide announcements' 
               : 'Stay updated with important school information'}
@@ -216,50 +196,48 @@ export function AnnouncementsPage() {
         {canCreate && (
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full sm:w-auto bg-module-announcements hover:bg-module-announcements/90">
                 <Plus className="mr-2 h-4 w-4" />
                 New Announcement
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle>
                   {editingAnnouncement ? 'Edit Announcement' : 'Create Announcement'}
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription>
                   {editingAnnouncement ? 'Update your announcement details' : 'Post an announcement to inform your audience'}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title" className="text-gray-300">Title *</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input 
                     id="title" 
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white" 
                     placeholder="Enter announcement title"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="content" className="text-gray-300">Content *</Label>
+                  <Label htmlFor="content">Content *</Label>
                   <Textarea
                     id="content"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white"
                     rows={5}
                     placeholder="Write your announcement..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="category" className="text-gray-300">Category *</Label>
+                    <Label htmlFor="category">Category *</Label>
                     <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectContent>
                         <SelectItem value="Academic">Academic</SelectItem>
                         <SelectItem value="Events">Events</SelectItem>
                         <SelectItem value="Sports">Sports</SelectItem>
@@ -270,12 +248,12 @@ export function AnnouncementsPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="priority" className="text-gray-300">Priority *</Label>
+                    <Label htmlFor="priority">Priority *</Label>
                     <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectContent>
                         <SelectItem value="high">High</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="low">Low</SelectItem>
@@ -284,7 +262,7 @@ export function AnnouncementsPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-300 mb-2 block">Audience *</Label>
+                  <Label className="mb-2 block">Audience *</Label>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox 
@@ -292,8 +270,8 @@ export function AnnouncementsPage() {
                         checked={formData.audiences.includes('students')}
                         onCheckedChange={() => toggleAudience('students')}
                       />
-                      <label htmlFor="students" className="text-sm text-gray-300 cursor-pointer flex items-center gap-1">
-                        <Users className="h-3 w-3 text-blue-400" />
+                      <label htmlFor="students" className="text-sm cursor-pointer flex items-center gap-1">
+                        <Users className="h-3 w-3 text-primary" />
                         Students
                       </label>
                     </div>
@@ -303,8 +281,8 @@ export function AnnouncementsPage() {
                         checked={formData.audiences.includes('parents')}
                         onCheckedChange={() => toggleAudience('parents')}
                       />
-                      <label htmlFor="parents" className="text-sm text-gray-300 cursor-pointer flex items-center gap-1">
-                        <Users className="h-3 w-3 text-purple-400" />
+                      <label htmlFor="parents" className="text-sm cursor-pointer flex items-center gap-1">
+                        <Users className="h-3 w-3 text-primary" />
                         Parents
                       </label>
                     </div>
@@ -314,8 +292,8 @@ export function AnnouncementsPage() {
                         checked={formData.audiences.includes('teachers')}
                         onCheckedChange={() => toggleAudience('teachers')}
                       />
-                      <label htmlFor="teachers" className="text-sm text-gray-300 cursor-pointer flex items-center gap-1">
-                        <Users className="h-3 w-3 text-green-400" />
+                      <label htmlFor="teachers" className="text-sm cursor-pointer flex items-center gap-1">
+                        <Users className="h-3 w-3 text-primary" />
                         Teachers
                       </label>
                     </div>
@@ -327,7 +305,7 @@ export function AnnouncementsPage() {
                     checked={formData.pinned}
                     onCheckedChange={(checked) => setFormData({ ...formData, pinned: !!checked })}
                   />
-                  <Label htmlFor="pinned" className="text-gray-300 cursor-pointer">
+                  <Label htmlFor="pinned" className="cursor-pointer">
                     Pin this announcement
                   </Label>
                 </div>
@@ -336,10 +314,10 @@ export function AnnouncementsPage() {
                     setIsCreateOpen(false);
                     setEditingAnnouncement(null);
                     setFormData({ title: '', content: '', category: '', priority: '', pinned: false, audiences: [] });
-                  }} className="border-gray-600 text-gray-300">
+                  }}>
                     Cancel
                   </Button>
-                  <Button onClick={handlePublishAnnouncement} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handlePublishAnnouncement}>
                     {editingAnnouncement ? 'Update' : 'Publish'}
                   </Button>
                 </div>
@@ -351,12 +329,12 @@ export function AnnouncementsPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <Label className="text-gray-300">Filter by Category:</Label>
+        <Label>Filter by Category:</Label>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
+          <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-gray-700 border-gray-600">
+          <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
             <SelectItem value="Academic">Academic</SelectItem>
             <SelectItem value="Events">Events</SelectItem>
@@ -371,35 +349,35 @@ export function AnnouncementsPage() {
       {pinnedAnnouncements.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Pin className="h-5 w-5 text-blue-400" />
-            <h2 className="text-white">Pinned Announcements</h2>
+            <Pin className="h-5 w-5 text-primary" />
+            <h2>Pinned Announcements</h2>
           </div>
           {pinnedAnnouncements.map((announcement) => (
-            <Card key={announcement.id} className="bg-gray-800 border-blue-500/50">
+            <Card key={announcement.id} className="border-primary/50">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Pin className="h-4 w-4 text-blue-400" />
-                      <CardTitle className="text-white">{announcement.title}</CardTitle>
+                      <Pin className="h-4 w-4 text-primary" />
+                      <CardTitle>{announcement.title}</CardTitle>
                       <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
                         {getPriorityIcon(announcement.priority)}
                         <span className="ml-1">{announcement.priority}</span>
                       </Badge>
                     </div>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription>
                       Posted by {announcement.author} ({announcement.authorRole}) • {announcement.date}
                     </CardDescription>
                   </div>
-                  <Badge className="bg-blue-500/10 text-blue-400">
+                  <Badge className="bg-primary/10 text-primary">
                     {announcement.category}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-gray-300">{announcement.content}</p>
-                <div className="flex items-center justify-between pt-3 border-t border-gray-700">
-                  <div className="flex items-center gap-3 text-sm text-gray-400">
+                <p>{announcement.content}</p>
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
                       <span>For: {announcement.audience.join(', ')}</span>
@@ -415,7 +393,6 @@ export function AnnouncementsPage() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleEditAnnouncement(announcement)}
-                        className="text-blue-400 hover:text-blue-300"
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
@@ -424,7 +401,7 @@ export function AnnouncementsPage() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setDeleteAnnouncementId(announcement.id)}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-destructive hover:text-destructive/90"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete
@@ -438,36 +415,48 @@ export function AnnouncementsPage() {
         </div>
       )}
 
+      {/* Error/Empty States */}
+      {isLoading ? (
+        <div className="text-muted-foreground">Loading announcements...</div>
+      ) : error ? (
+        <div className="text-destructive">{(error as any).message || 'Failed to load announcements'}</div>
+      ) : null}
+
       {/* Regular Announcements */}
       <div className="space-y-3">
         {pinnedAnnouncements.length > 0 && (
-          <h2 className="text-white">Recent Announcements</h2>
+          <h2>Recent Announcements</h2>
+        )}
+        {regularAnnouncements.length === 0 && !isLoading && !error && (
+          <Card>
+            <CardContent className="p-6 text-muted-foreground">No announcements yet</CardContent>
+          </Card>
         )}
         {regularAnnouncements.map((announcement) => (
-          <Card key={announcement.id} className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
+          <Card key={announcement.id} className="hover:border-primary/50 transition-colors">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <CardTitle className="text-white">{announcement.title}</CardTitle>
+                    <CardTitle>{announcement.title}</CardTitle>
                     <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
                       {getPriorityIcon(announcement.priority)}
                       <span className="ml-1">{announcement.priority}</span>
                     </Badge>
                   </div>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription>
                     Posted by {announcement.author} ({announcement.authorRole}) • {announcement.date}
                   </CardDescription>
                 </div>
-                <Badge className="bg-gray-700 text-gray-300">
+                <Badge variant="secondary">
                   {announcement.category}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-gray-300">{announcement.content}</p>
-              <div className="flex items-center justify-between pt-3 border-t border-gray-700">
-                <div className="flex items-center gap-3 text-sm text-gray-400">
+              <p>{announcement.content}</p>
+              <div className="flex items-center justify-between pt-3 border-t">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     <span>For: {announcement.audience.join(', ')}</span>
@@ -483,7 +472,6 @@ export function AnnouncementsPage() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => handleEditAnnouncement(announcement)}
-                      className="text-blue-400 hover:text-blue-300"
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
@@ -492,7 +480,7 @@ export function AnnouncementsPage() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => setDeleteAnnouncementId(announcement.id)}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-destructive hover:text-destructive/90"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete
@@ -507,20 +495,20 @@ export function AnnouncementsPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteAnnouncementId} onOpenChange={() => setDeleteAnnouncementId(null)}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Announcement?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle>Delete Announcement?</AlertDialogTitle>
+            <AlertDialogDescription>
               This action cannot be undone. The announcement will be permanently removed from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-600 text-gray-300">
+            <AlertDialogCancel>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAnnouncement}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

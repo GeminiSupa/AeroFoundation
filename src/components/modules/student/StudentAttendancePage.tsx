@@ -44,13 +44,15 @@ export function StudentAttendancePage() {
   const totalLate = myAttendance.monthly.reduce((sum, m) => sum + m.late, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h2 className="flex items-center gap-2">
-          <ClipboardCheck className="w-6 h-6" />
-          My Attendance
-        </h2>
-        <p className="text-muted-foreground">Track your attendance record</p>
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-student">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-student text-white">
+            <ClipboardCheck className="w-5 h-5" />
+          </span>
+          <span>My Attendance</span>
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base">Track your attendance record</p>
       </div>
 
       {/* Overview Stats */}

@@ -6,64 +6,93 @@ import { Progress } from '../ui/progress';
 import { useApp } from '../../context/AppContext';
 import { AIInsights } from '../AIInsights';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { getAdminDashboardStats } from '../../lib/api/dashboard';
+import { AlertCircle } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 export function AdminDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
 
-  const stats = [
-    { icon: <Users className="w-6 h-6" />, label: 'Total Students', value: '1,234', change: '+12%', color: 'bg-blue-500' },
-    { icon: <GraduationCap className="w-6 h-6" />, label: 'Total Teachers', value: '87', change: '+3', color: 'bg-green-500' },
-    { icon: <TrendingUp className="w-6 h-6" />, label: 'Attendance Rate', value: '94.2%', change: '+2.1%', color: 'bg-orange-500' },
-    { icon: <Bot className="w-6 h-6" />, label: 'AI Insights', value: '23', change: 'New', color: 'bg-purple-500' },
-  ];
+  // Fetch dashboard stats using TanStack Query
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['adminDashboardStats'],
+    queryFn: async () => {
+      const result = await getAdminDashboardStats();
+      if (!result.success) throw new Error(result.error);
+      return result.data!;
+    },
+  });
 
-  const alerts = [
-    { id: 1, type: 'warning', message: 'Class 10B has low attendance this week (78%)', time: '10 minutes ago' },
-    { id: 2, type: 'info', message: 'AI detected scheduling conflict for Math class', time: '1 hour ago' },
-    { id: 3, type: 'success', message: 'New teacher onboarding completed successfully', time: '2 hours ago' },
-  ];
+  const stats = statsLoading ? [
+    { icon: <Users className="w-6 h-6" />, label: 'Total Students', value: '...', change: '', color: 'bg-blue-500' },
+    { icon: <GraduationCap className="w-6 h-6" />, label: 'Total Teachers', value: '...', change: '', color: 'bg-green-500' },
+    { icon: <TrendingUp className="w-6 h-6" />, label: 'Attendance Rate', value: '...', change: '', color: 'bg-orange-500' },
+    { icon: <Bot className="w-6 h-6" />, label: 'AI Insights', value: '...', change: '', color: 'bg-purple-500' },
+  ] : statsData ? [
+    { icon: <Users className="w-6 h-6" />, label: 'Total Students', value: statsData.totalStudents.toString(), change: '', color: 'bg-blue-500' },
+    { icon: <GraduationCap className="w-6 h-6" />, label: 'Total Teachers', value: statsData.totalTeachers.toString(), change: '', color: 'bg-green-500' },
+    { icon: <TrendingUp className="w-6 h-6" />, label: 'Attendance Rate', value: `${statsData.attendanceRate}%`, change: '', color: 'bg-orange-500' },
+    { icon: <Bot className="w-6 h-6" />, label: 'AI Insights', value: statsData.aiInsights.toString(), change: 'New', color: 'bg-purple-500' },
+  ] : [];
+
+  const alerts: any[] = [];
 
   const quickActions = [
-    { icon: <Calendar className="w-5 h-5" />, label: 'Create Schedule', page: 'admin-scheduling', color: 'bg-blue-500' },
-    { icon: <UserPlus className="w-5 h-5" />, label: 'Add User', page: 'admin-users', color: 'bg-green-500' },
+    { icon: <Calendar className="w-5 h-5" />, label: 'Learning Hub & Schedule', page: 'admin-learning-hub', color: 'bg-blue-500' },
+    { icon: <UserPlus className="w-5 h-5" />, label: 'Add Student', page: 'admin-students?action=add', color: 'bg-indigo-500' },
+    { icon: <Users className="w-5 h-5" />, label: 'Manage Students', page: 'admin-students', color: 'bg-green-500' },
     { icon: <Bot className="w-5 h-5" />, label: 'AI Optimize', page: 'admin-ai-tools', color: 'bg-orange-500' },
   ];
 
-  const upcomingEvents = [
-    { title: 'Parent-Teacher Meeting', date: 'Oct 20, 2025', time: '10:00 AM' },
-    { title: 'Science Fair', date: 'Oct 25, 2025', time: '9:00 AM' },
-    { title: 'Staff Training', date: 'Oct 28, 2025', time: '2:00 PM' },
-  ];
+  const upcomingEvents: any[] = [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1>Welcome back, {user?.name}</h1>
-        <p className="text-muted-foreground">Here's what's happening with your school today.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold">Welcome back, {user?.name}</h1>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">Here's what's happening with your school today.</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <h2 className="mt-2">{stat.value}</h2>
-                  <Badge variant="secondary" className="mt-2">{stat.change}</Badge>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {statsLoading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : statsError ? (
+          <div className="col-span-4 flex items-center justify-center p-6 text-destructive">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span>Failed to load dashboard statistics</span>
+          </div>
+        ) : (
+          stats.map((stat, index) => (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <h2 className="mt-2">{stat.value}</h2>
+                    {stat.change && <Badge variant="secondary" className="mt-2">{stat.change}</Badge>}
+                  </div>
+                  <div className={`${stat.color} p-3 rounded-lg text-white`}>
+                    {stat.icon}
+                  </div>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg text-white`}>
-                  {stat.icon}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Quick Actions */}
         <Card>
           <CardHeader>
@@ -94,15 +123,21 @@ export function AdminDashboard() {
             <CardDescription>Important notifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {alerts.map((alert) => (
-              <div key={alert.id} className="border-l-4 border-orange-500 pl-3 py-2">
-                <Badge variant={alert.type === 'warning' ? 'destructive' : alert.type === 'success' ? 'default' : 'secondary'}>
-                  {alert.type}
-                </Badge>
-                <p className="text-sm mt-1">{alert.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
-              </div>
-            ))}
+            {alerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No alerts yet. As real data comes in, important notifications will appear here.
+              </p>
+            ) : (
+              alerts.map((alert) => (
+                <div key={alert.id} className="border-l-4 border-orange-500 pl-3 py-2">
+                  <Badge variant={alert.type === 'warning' ? 'destructive' : alert.type === 'success' ? 'default' : 'secondary'}>
+                    {alert.type}
+                  </Badge>
+                  <p className="text-sm mt-1">{alert.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -113,39 +148,26 @@ export function AdminDashboard() {
             <CardDescription>Calendar overview</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {upcomingEvents.map((event, index) => (
-              <div key={index} className="flex items-start gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
-                <div className="bg-blue-500 p-2 rounded-lg text-white">
-                  <Clock className="w-4 h-4" />
+            {upcomingEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No events scheduled yet.</p>
+            ) : (
+              upcomingEvents.map((event, index) => (
+                <div key={index} className="flex items-start gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
+                  <div className="bg-blue-500 p-2 rounded-lg text-white">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm">{event.title}</p>
+                    <p className="text-xs text-muted-foreground">{event.date} at {event.time}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm">{event.title}</p>
-                  <p className="text-xs text-muted-foreground">{event.date} at {event.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* AI Insights */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-orange-500" />
-                AI Insights & Recommendations
-              </CardTitle>
-              <CardDescription>Data-driven insights for better decision making</CardDescription>
-            </div>
-            <Button onClick={() => navigate('/admin-ai-tools')}>View All</Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <AIInsights role="admin" />
-        </CardContent>
-      </Card>
+      {/* AI Insights section removed */}
     </div>
   );
 }

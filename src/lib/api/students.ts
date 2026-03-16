@@ -1,238 +1,157 @@
-import type { Student, StudentFormData, ApiResponse, PaginatedResponse } from '../../types';
+import { supabase, supabaseAdmin } from '../supabaseClient';
 
-/**
- * Get all students (Admin only)
- */
-export async function getStudents(page = 1, pageSize = 50): Promise<ApiResponse<PaginatedResponse<Student>>> {
+export interface StudentData {
+  id: string;
+  roll_number: string;
+  class_id?: string;
+  section?: string;
+  date_of_birth?: string;
+  gender?: 'male' | 'female' | 'other';
+  parent_id?: string;
+  admission_date: string;
+  status: 'active' | 'inactive' | 'graduated';
+  profile?: {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+  };
+}
+
+export async function getStudents(): Promise<{ success: true; data: any[] } | { success: false; error: string }> {
   try {
-    // TODO: Replace with actual Supabase query
-    // const { data, error, count } = await supabase
-    //   .from('students')
-    //   .select('*', { count: 'exact' })
-    //   .range((page - 1) * pageSize, page * pageSize - 1);
+    const { data, error } = await supabase
+      .from('students')
+      .select(`
+        *,
+        profile:profiles(id, full_name, email, avatar_url),
+        class:classes(id, section_code, subject:subjects(name, code)),
+        parent:profiles!students_parent_id_fkey(id, full_name, email, phone)
+      `);
 
-    // Mock data for now
-    const mockStudents: Student[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@school.com',
-        class: '10',
-        section: 'A',
-        rollNumber: 'S001',
-        dateOfBirth: '2008-05-15',
-        gender: 'male',
-        address: '123 Main St',
-        phone: '+1234567890',
-        admissionDate: '2020-04-01',
-        status: 'active',
-      },
-      {
-        id: '2',
-        name: 'Emma Smith',
-        email: 'emma.smith@school.com',
-        class: '10',
-        section: 'A',
-        rollNumber: 'S002',
-        dateOfBirth: '2008-08-22',
-        gender: 'female',
-        address: '456 Oak Ave',
-        phone: '+1234567891',
-        admissionDate: '2020-04-01',
-        status: 'active',
-      },
-    ];
-
-    return {
-      success: true,
-      data: {
-        data: mockStudents,
-        total: mockStudents.length,
-        page,
-        pageSize,
-        totalPages: Math.ceil(mockStudents.length / pageSize),
-      },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to fetch students',
-    };
+    if (error) throw error;
+    const list = (data || []).map((row: any) => ({
+      ...row,
+      class_name: row.class
+        ? [row.class.subject?.name || row.class.subject?.code, row.class.section_code].filter(Boolean).join(' ')
+        : null,
+      parent_name: row.parent?.full_name ?? null,
+      parent_phone: row.parent?.phone ?? null,
+    }));
+    return { success: true, data: list };
+  } catch (err: any) {
+    console.error('getStudents error:', err);
+    return { success: false, error: err?.message || 'Failed to fetch students' };
   }
 }
 
-/**
- * Get student by ID
- */
-export async function getStudentById(id: string): Promise<ApiResponse<Student>> {
+export async function getStudent(id: string): Promise<{ success: true; data: any } | { success: false; error: string }> {
   try {
-    // TODO: Replace with actual Supabase query
-    // const { data, error } = await supabase
-    //   .from('students')
-    //   .select('*')
-    //   .eq('id', id)
-    //   .single();
+    const { data, error } = await supabase
+      .from('students')
+      .select(`
+        *,
+        profile:profiles(id, full_name, email, avatar_url)
+      `)
+      .eq('id', id)
+      .single();
 
-    const mockStudent: Student = {
-      id,
-      name: 'John Doe',
-      email: 'john.doe@school.com',
-      class: '10',
-      section: 'A',
-      rollNumber: 'S001',
-      dateOfBirth: '2008-05-15',
-      gender: 'male',
-      address: '123 Main St',
-      phone: '+1234567890',
-      admissionDate: '2020-04-01',
-      status: 'active',
-    };
-
-    return {
-      success: true,
-      data: mockStudent,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to fetch student',
-    };
+    if (error) throw error;
+    return { success: true, data: data! };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to fetch student' };
   }
 }
 
-/**
- * Add a new student (Admin only)
- */
-export async function addStudent(data: StudentFormData): Promise<ApiResponse<Student>> {
+export async function createStudent(student: Partial<StudentData>) {
+  const { data, error } = await supabase
+    .from('students')
+    .insert(student)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateStudent(id: string, updates: Partial<StudentData>) {
+  const { data, error } = await supabase
+    .from('students')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Upsert a student record (insert or update by id). Used for CSV import. */
+export async function upsertStudent(row: Partial<StudentData>): Promise<{ success: true; data: any } | { success: false; error: string }> {
   try {
-    // TODO: Replace with actual Supabase query
-    // const { data: newStudent, error } = await supabase
-    //   .from('students')
-    //   .insert([data])
-    //   .select()
-    //   .single();
+    const { data, error } = await supabaseAdmin
+      .from('students')
+      .upsert(
+        {
+          id: row.id,
+          roll_number: row.roll_number ?? '',
+          class_id: row.class_id || null,
+          section: row.section || null,
+          date_of_birth: row.date_of_birth || null,
+          gender: row.gender || null,
+          parent_id: row.parent_id || null,
+          admission_date: row.admission_date || new Date().toISOString(),
+          status: row.status ?? 'active',
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .single();
 
-    const newStudent: Student = {
-      id: Date.now().toString(),
-      ...data,
-      admissionDate: new Date().toISOString(),
-      status: 'active',
-    };
-
-    return {
-      success: true,
-      data: newStudent,
-      message: 'Student added successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to add student',
-    };
+    if (error) throw error;
+    return { success: true, data: data! };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to upsert student' };
   }
 }
 
-/**
- * Update student information (Admin only)
- */
-export async function updateStudent(id: string, data: Partial<StudentFormData>): Promise<ApiResponse<Student>> {
-  try {
-    // TODO: Replace with actual Supabase query
-    // const { data: updatedStudent, error } = await supabase
-    //   .from('students')
-    //   .update(data)
-    //   .eq('id', id)
-    //   .select()
-    //   .single();
+export async function deleteStudent(id: string) {
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', id);
 
-    const updatedStudent: Student = {
-      id,
-      name: data.name || 'Updated Student',
-      email: data.email || 'student@school.com',
-      class: data.class || '10',
-      section: data.section || 'A',
-      rollNumber: data.rollNumber || 'S001',
-      dateOfBirth: data.dateOfBirth || '2008-01-01',
-      gender: data.gender || 'male',
-      address: data.address || '',
-      phone: data.phone || '',
-      admissionDate: '2020-04-01',
-      status: 'active',
-    };
-
-    return {
-      success: true,
-      data: updatedStudent,
-      message: 'Student updated successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to update student',
-    };
-  }
+  if (error) throw error;
 }
 
-/**
- * Delete student (Admin only)
- */
-export async function deleteStudent(id: string): Promise<ApiResponse<void>> {
-  try {
-    // TODO: Replace with actual Supabase query
-    // const { error } = await supabase
-    //   .from('students')
-    //   .delete()
-    //   .eq('id', id);
+export async function linkParentToStudent(studentId: string, parentId: string | null) {
+  const { data, error } = await supabase
+    .from('students')
+    .update({ parent_id: parentId })
+    .eq('id', studentId)
+    .select()
+    .single();
 
-    return {
-      success: true,
-      message: 'Student deleted successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to delete student',
-    };
-  }
+  if (error) throw error;
+  return data;
 }
 
-/**
- * Get students by class (Teacher access)
- */
-export async function getStudentsByClass(classId: string): Promise<ApiResponse<Student[]>> {
-  try {
-    // TODO: Replace with actual Supabase query
-    // const { data, error } = await supabase
-    //   .from('students')
-    //   .select('*')
-    //   .eq('class', classId)
-    //   .eq('status', 'active');
+export async function getChildrenForParent(parentId: string) {
+  const { data, error } = await supabase
+    .from('students')
+    .select(`
+      *,
+      profile:profiles(id, full_name, email, avatar_url),
+      class:classes(id, section_code, subject:subjects(name, code))
+    `)
+    .eq('parent_id', parentId);
 
-    const mockStudents: Student[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@school.com',
-        class: classId,
-        section: 'A',
-        rollNumber: 'S001',
-        dateOfBirth: '2008-05-15',
-        gender: 'male',
-        address: '123 Main St',
-        phone: '+1234567890',
-        admissionDate: '2020-04-01',
-        status: 'active',
-      },
-    ];
-
-    return {
-      success: true,
-      data: mockStudents,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to fetch students',
-    };
-  }
+  if (error) throw error;
+  const list = data || [];
+  return list.map((row: any) => ({
+    ...row,
+    class: row.class
+      ? { ...row.class, name: row.class.subject?.name || row.class.subject?.code, section: row.class.section_code }
+      : null,
+  }));
 }

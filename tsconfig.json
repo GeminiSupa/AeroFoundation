@@ -14,6 +14,13 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* --- THIS IS THE FIX --- */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    /* --- END OF FIX --- */
+
     /* Linting */
     "strict": false,
     "noUnusedLocals": false,
@@ -21,5 +28,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "vite-env.d.ts"],
-  "exclude": ["src/supabase"]
+  "exclude": ["src/supabase", "src/lib/api/intelligentClassManager.ts", "src/lib/api/intelligentClassManager.backup.ts"]
 }

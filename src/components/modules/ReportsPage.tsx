@@ -9,23 +9,10 @@ import {
   ChartTooltipContent,
 } from '../ui/chart';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { getReportsData } from '../../lib/api/reports';
+import { Skeleton } from '../ui/skeleton';
 
-const attendanceData = [
-  { month: 'Jan', attendance: 92 },
-  { month: 'Feb', attendance: 88 },
-  { month: 'Mar', attendance: 94 },
-  { month: 'Apr', attendance: 91 },
-  { month: 'May', attendance: 89 },
-  { month: 'Jun', attendance: 95 },
-];
-
-const gradeData = [
-  { subject: 'Math', average: 85 },
-  { subject: 'Physics', average: 78 },
-  { subject: 'Chemistry', average: 82 },
-  { subject: 'English', average: 88 },
-  { subject: 'History', average: 86 },
-];
 
 const chartConfig = {
   attendance: {
@@ -39,36 +26,48 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ReportsPage() {
+  const { data: reportsData, isLoading } = useQuery({
+    queryKey: ['reportsData'],
+    queryFn: async () => {
+      const res = await getReportsData();
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+  });
+
+  const attendanceData = reportsData?.attendanceData || [];
+  const gradeData = reportsData?.gradeData || [];
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="flex items-center gap-2">
-            <FileText className="w-8 h-8" />
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-module-reports">
+            <FileText className="w-7 h-7 sm:w-8 sm:h-8" />
             Reports & Analytics
           </h1>
-          <p className="text-muted-foreground">Generate and export comprehensive reports</p>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Generate and export comprehensive reports</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             Export PDF
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
-          <Button>Generate Report</Button>
+          <Button className="w-full sm:w-auto bg-module-reports hover:bg-module-reports/90">Generate Report</Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Reports</p>
-                <h2 className="mt-2">156</h2>
+                {isLoading ? <Skeleton className="h-8 w-16 mt-2" /> : <h2 className="mt-2 text-2xl font-bold">{reportsData?.totalReports || 0}</h2>}
                 <Badge className="mt-2" variant="secondary">Generated</Badge>
               </div>
               <div className="bg-blue-500 p-3 rounded-lg text-white">
@@ -83,7 +82,7 @@ export function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">AI Insights</p>
-                <h2 className="mt-2">42</h2>
+                {isLoading ? <Skeleton className="h-8 w-16 mt-2" /> : <h2 className="mt-2 text-2xl font-bold">{reportsData?.aiInsights || 0}</h2>}
                 <Badge className="mt-2">Active</Badge>
               </div>
               <div className="bg-orange-500 p-3 rounded-lg text-white">
@@ -98,7 +97,7 @@ export function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Data Points</p>
-                <h2 className="mt-2">12.5K</h2>
+                {isLoading ? <Skeleton className="h-8 w-16 mt-2" /> : <h2 className="mt-2 text-2xl font-bold">{reportsData?.dataPoints || 0}</h2>}
                 <Badge className="mt-2" variant="secondary">Analyzed</Badge>
               </div>
               <div className="bg-green-500 p-3 rounded-lg text-white">
@@ -116,23 +115,29 @@ export function ReportsPage() {
             <CardDescription>Monthly attendance percentage over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={attendanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis domain={[80, 100]} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line
-                    type="monotone"
-                    dataKey="attendance"
-                    stroke="var(--color-attendance)"
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-attendance)" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {isLoading ? (
+              <Skeleton className="h-[300px] w-full" />
+            ) : attendanceData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={attendanceData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis domain={[0, 100]} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line
+                      type="monotone"
+                      dataKey="attendance"
+                      stroke="var(--color-attendance)"
+                      strokeWidth={2}
+                      dot={{ fill: "var(--color-attendance)" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">No attendance data available</div>
+            )}
           </CardContent>
         </Card>
 
@@ -142,17 +147,23 @@ export function ReportsPage() {
             <CardDescription>Performance comparison across subjects</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gradeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="subject" />
-                  <YAxis domain={[0, 100]} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="average" fill="var(--color-average)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {isLoading ? (
+              <Skeleton className="h-[300px] w-full" />
+            ) : gradeData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={gradeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="subject" />
+                    <YAxis domain={[0, 100]} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="average" fill="var(--color-average)" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">No grades data available</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -166,63 +177,9 @@ export function ReportsPage() {
           <CardDescription>Data-driven observations and recommendations</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4 bg-orange-50 dark:bg-orange-950">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="w-5 h-5 text-orange-500 mt-1" />
-                <div>
-                  <h4>Attendance Observation</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Grade 10 attendance shows a 12% improvement this semester. Main factors: Better schedule 
-                    optimization and reduced conflicts.
-                  </p>
-                  <Badge className="mt-2" variant="secondary">Positive Trend</Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950">
-              <div className="flex items-start gap-3">
-                <Users className="w-5 h-5 text-blue-500 mt-1" />
-                <div>
-                  <h4>Grade Performance</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Science grades declining by 8% in Grade 9. AI recommends additional lab sessions and 
-                    peer tutoring programs.
-                  </p>
-                  <Badge className="mt-2" variant="destructive">Needs Attention</Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950">
-              <div className="flex items-start gap-3">
-                <Bot className="w-5 h-5 text-green-500 mt-1" />
-                <div>
-                  <h4>Resource Utilization</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Library usage increased by 25% after AI recommendations. Most popular: STEM resources 
-                    and digital learning materials.
-                  </p>
-                  <Badge className="mt-2">Success</Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-950">
-              <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-purple-500 mt-1" />
-                <div>
-                  <h4>Teacher Workload</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    AI detected workload imbalance. Recommendation: Redistribute 3 classes to balance 
-                    teaching hours across staff.
-                  </p>
-                  <Badge className="mt-2" variant="secondary">Optimization Available</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            AI-generated insights have been removed.
+          </p>
         </CardContent>
       </Card>
 

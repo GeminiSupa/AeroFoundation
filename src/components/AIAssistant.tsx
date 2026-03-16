@@ -1,41 +1,74 @@
-import { useState } from 'react';
-import { Bot, X, Send } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Bot, X, Send, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { sendChatMessage, type ChatMessage } from '../services/aiChatService';
+
+interface UIMessage {
+  id: number;
+  sender: 'user' | 'ai';
+  text: string;
+}
 
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'ai', text: 'Hello! I\'m your AI assistant. How can I help you today?' },
+  const [messages, setMessages] = useState<UIMessage[]>([
+    { id: 1, sender: 'ai', text: "Hello! I'm your AI assistant powered by Groq. How can I help you today?" },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-    const userMessage = { id: messages.length + 1, sender: 'user', text: inputValue };
-    setMessages([...messages, userMessage]);
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: messages.length + 2,
-        sender: 'ai',
-        text: 'I understand your request. Let me help you with that. This is a demo response showing how the AI assistant would interact with you.'
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-
+    const userText = inputValue.trim();
+    const userMessage: UIMessage = { id: Date.now(), sender: 'user', text: userText };
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setIsLoading(true);
+
+    try {
+      // Build history for Groq (skip the initial greeting)
+      const history: ChatMessage[] = messages
+        .filter(m => m.id !== 1)
+        .map(m => ({
+          role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.text,
+        }));
+      history.push({ role: 'user', content: userText });
+
+      const result = await sendChatMessage(history);
+
+      const aiMessage: UIMessage = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: result.success
+          ? result.message!
+          : result.error || 'Sorry, something went wrong. Please try again.',
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'ai', text: 'Network error. Please check your connection and try again.' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const quickActions = [
     'Optimize my schedule',
     'Check attendance trends',
     'Generate report',
-    'View AI insights',
+    'How to add students?',
   ];
 
   if (!isOpen) {
@@ -51,12 +84,12 @@ export function AIAssistant() {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col">
-      <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg p-4">
+    <Card className="fixed bottom-6 right-6 w-[min(384px,calc(100vw-3rem))] h-[500px] shadow-2xl z-50 flex flex-col">
+      <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg p-4 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bot className="w-5 h-5" />
-            <CardTitle className="text-white">AI Assistant</CardTitle>
+            <CardTitle className="text-white text-base">AI Assistant</CardTitle>
           </div>
           <Button
             variant="ghost"
@@ -67,7 +100,9 @@ export function AIAssistant() {
             <X className="w-5 h-5" />
           </Button>
         </div>
-        <Badge className="w-fit bg-orange-400 hover:bg-orange-400">Online</Badge>
+        <Badge className="w-fit bg-orange-400 hover:bg-orange-400">
+          {isLoading ? 'Typing...' : 'Online'}
+        </Badge>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
@@ -85,15 +120,24 @@ export function AIAssistant() {
                     : 'bg-gray-100 dark:bg-gray-800'
                 }`}
               >
-                <p className="text-sm">{message.text}</p>
+                <p className="text-sm whitespace-pre-wrap">{message.text}</p>
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Thinking...</span>
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
         </div>
 
         {/* Quick Actions */}
         {messages.length <= 1 && (
-          <div className="mb-4">
+          <div className="mb-4 shrink-0">
             <p className="text-xs text-muted-foreground mb-2">Quick actions:</p>
             <div className="flex flex-wrap gap-2">
               {quickActions.map((action, index) => (
@@ -102,7 +146,9 @@ export function AIAssistant() {
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  onClick={() => setInputValue(action)}
+                  onClick={() => {
+                    setInputValue(action);
+                  }}
                 >
                   {action}
                 </Button>
@@ -112,15 +158,21 @@ export function AIAssistant() {
         )}
 
         {/* Input */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Input
             placeholder="Ask me anything..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            disabled={isLoading}
           />
-          <Button onClick={handleSend} size="icon" className="bg-orange-500 hover:bg-orange-600">
-            <Send className="w-4 h-4" />
+          <Button
+            onClick={handleSend}
+            size="icon"
+            className="bg-orange-500 hover:bg-orange-600 shrink-0"
+            disabled={isLoading || !inputValue.trim()}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
       </CardContent>

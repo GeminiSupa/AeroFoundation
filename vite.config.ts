@@ -12,6 +12,26 @@ export default defineConfig({
     build: {
       target: 'esnext',
       outDir: 'build',
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              // Separate out some larger libraries
+              if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+                return 'ui';
+              }
+              if (id.includes('@supabase')) {
+                return 'supabase';
+              }
+              if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router-dom')) {
+                return 'react-vendor';
+              }
+              return 'vendor';
+            }
+          }
+        }
+      }
     },
     server: {
       port: 3000,

@@ -4,8 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Settings, Shield, Palette, Plug } from 'lucide-react';
+import { Settings, Shield, Palette, Plug, BookOpen, Plus, Edit, Trash2, Loader2, User, Sun, Moon } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { useApp } from '../../context/AppContext';
+import { getCurrentUserProfile } from '../../lib/api/auth';
+import { updateUser } from '../../lib/api/users';
+import { supabase } from '../../lib/supabaseClient';
 import {
   Table,
   TableBody,
@@ -14,25 +18,163 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSubjects, createSubject, updateSubject, deleteSubject } from '../../lib/api/subjects';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Skeleton } from '../ui/skeleton';
+import { AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { getSchoolLogoUrl, setSchoolLogoUrl } from '../../utils/schoolBranding';
+
+const subjectSchema = z.object({
+  name: z.string().min(1, 'Subject name is required'),
+  code: z.string().optional(),
+  department: z.string().optional(),
+});
+
+type SubjectFormData = z.infer<typeof subjectSchema>;
 
 export function SettingsPage() {
-  const activeSessions = [
-    { id: 1, device: 'Chrome on Windows', location: 'Kaiserslautern, Germany', lastActive: '5 min ago', current: true },
-    { id: 2, device: 'Safari on iPhone', location: 'Kaiserslautern, Germany', lastActive: '2 hours ago', current: false },
-  ];
+  const queryClient = useQueryClient();
+  const { user, setUser, theme, setTheme } = useApp();
+  const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<any>(null);
+  const [deleteSubjectId, setDeleteSubjectId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState(user?.name ?? '');
+  const [passwordNew, setPasswordNew] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(getSchoolLogoUrl());
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  useEffect(() => {
+    setProfileName(user?.name ?? '');
+  }, [user?.name]);
+
+  const form = useForm<SubjectFormData>({
+    resolver: zodResolver(subjectSchema),
+    defaultValues: {
+      name: '',
+      code: '',
+      department: '',
+    },
+  });
+
+  // Fetch subjects
+  const { data: subjects, isLoading, error } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: async () => {
+      const res = await getSubjects();
+      if (!res.success) throw new Error(res.error);
+      return res.data || [];
+    },
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: async (data: SubjectFormData) => {
+      const res = await createSubject(data);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      toast.success('Subject created successfully!');
+      setIsSubjectDialogOpen(false);
+      form.reset();
+      setEditingSubject(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create subject');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: SubjectFormData }) => {
+      const res = await updateSubject(id, data);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      toast.success('Subject updated successfully!');
+      setIsSubjectDialogOpen(false);
+      form.reset();
+      setEditingSubject(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update subject');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await deleteSubject(id);
+      if (!res.success) throw new Error(res.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      toast.success('Subject deleted successfully!');
+      setDeleteSubjectId(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete subject');
+    },
+  });
+
+  const handleEditSubject = (subject: any) => {
+    setEditingSubject(subject);
+    form.reset({
+      name: subject.name,
+      code: subject.code || '',
+      department: subject.department || '',
+    });
+    setIsSubjectDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsSubjectDialogOpen(false);
+    form.reset();
+    setEditingSubject(null);
+  };
+
+  const onSubmit = (data: SubjectFormData) => {
+    if (editingSubject) {
+      updateMutation.mutate({ id: editingSubject.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="flex items-center gap-2">
-          <Settings className="w-8 h-8" />
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-module-settings">
+          <Settings className="w-7 h-7 sm:w-8 sm:h-8" />
           Settings
         </h1>
         <p className="text-muted-foreground">Manage system settings and preferences</p>
       </div>
 
-      <Tabs defaultValue="security">
+      <Tabs defaultValue="profile">
         <TabsList>
+          <TabsTrigger value="profile">
+            <User className="w-4 h-4 mr-2" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="subjects">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Subjects
+          </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
             Security
@@ -46,6 +188,268 @@ export function SettingsPage() {
             Integrations
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Display name</CardTitle>
+                <CardDescription>This name is shown across the app</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Your display name"
+                  />
+                </div>
+                <Button
+                  disabled={profileSaving || !user?.id}
+                  onClick={async () => {
+                    if (!user?.id) return;
+                    setProfileSaving(true);
+                    try {
+                      const res = await updateUser(user.id, { full_name: profileName });
+                      if (!res.success) {
+                        toast.error(res.error || 'Failed to update name');
+                        return;
+                      }
+                      const profile = await getCurrentUserProfile();
+                      if (profile.success && profile.data) {
+                        setUser({
+                          id: profile.data.id,
+                          name: profile.data.name,
+                          email: profile.data.email,
+                          role: profile.data.role as any,
+                          avatar: profile.data.avatar,
+                          class: profile.data.class,
+                        } as any);
+                        toast.success('Profile updated');
+                      }
+                    } finally {
+                      setProfileSaving(false);
+                    }
+                  }}
+                >
+                  {profileSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Save name
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme</CardTitle>
+                <CardDescription>Choose light or dark appearance (saved in this browser)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button
+                    variant={theme === 'light' ? 'default' : 'outline'}
+                    onClick={() => setTheme('light')}
+                  >
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light
+                  </Button>
+                  <Button
+                    variant={theme === 'dark' ? 'default' : 'outline'}
+                    onClick={() => setTheme('dark')}
+                  >
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="subjects">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Subjects & Academics</CardTitle>
+                  <CardDescription>Manage all subjects offered at the school</CardDescription>
+                </div>
+                <Button onClick={() => setIsSubjectDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Subject
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-16" />
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-12 text-destructive">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>Failed to load subjects</span>
+                </div>
+              ) : subjects?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No subjects yet</p>
+                  <Button onClick={() => setIsSubjectDialogOpen(true)} className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Subject
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Subject Name</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subjects?.map((subject: any) => (
+                        <TableRow key={subject.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-primary">
+                                <BookOpen className="w-5 h-5" />
+                              </div>
+                              <span className="font-medium">{subject.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{subject.code || '-'}</TableCell>
+                          <TableCell>{subject.department || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditSubject(subject)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteSubjectId(subject.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Add/Edit Subject Dialog */}
+          <Dialog open={isSubjectDialogOpen} onOpenChange={handleDialogClose}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingSubject ? 'Edit Subject' : 'Add New Subject'}</DialogTitle>
+                <DialogDescription>
+                  {editingSubject ? 'Update subject details' : 'Create a new subject for the curriculum'}
+                </DialogDescription>
+              </DialogHeader>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject Name *</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Mathematics" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., MATH101" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Sciences" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDialogClose}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                      {(createMutation.isPending || updateMutation.isPending) && (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      )}
+                      {editingSubject ? 'Update Subject' : 'Create Subject'}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={!!deleteSubjectId} onOpenChange={() => setDeleteSubjectId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Subject?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. The subject will be permanently removed from the system.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (deleteSubjectId) {
+                      deleteMutation.mutate(deleteSubjectId);
+                    }
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </TabsContent>
 
         <TabsContent value="security">
           <div className="space-y-4">
@@ -68,60 +472,57 @@ export function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Active Sessions</CardTitle>
-                <CardDescription>Manage your active login sessions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activeSessions.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell>{session.device}</TableCell>
-                        <TableCell>{session.location}</TableCell>
-                        <TableCell>{session.lastActive}</TableCell>
-                        <TableCell>
-                          {session.current && <Badge>Current</Badge>}
-                        </TableCell>
-                        <TableCell>
-                          {!session.current && (
-                            <Button size="sm" variant="destructive">End Session</Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
                 <CardTitle>Password</CardTitle>
                 <CardDescription>Change your account password</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Current Password</Label>
-                  <Input type="password" placeholder="Enter current password" />
-                </div>
-                <div className="space-y-2">
                   <Label>New Password</Label>
-                  <Input type="password" placeholder="Enter new password" />
+                  <Input
+                    type="password"
+                    placeholder="Enter new password"
+                    value={passwordNew}
+                    onChange={(e) => setPasswordNew(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Confirm new password" />
+                  <Input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                  />
                 </div>
-                <Button>Update Password</Button>
+                <Button
+                  disabled={passwordSaving || !passwordNew || passwordNew !== passwordConfirm || passwordNew.length < 6}
+                  onClick={async () => {
+                    if (passwordNew !== passwordConfirm) {
+                      toast.error('Passwords do not match');
+                      return;
+                    }
+                    if (passwordNew.length < 6) {
+                      toast.error('Password must be at least 6 characters');
+                      return;
+                    }
+                    setPasswordSaving(true);
+                    try {
+                      const { error } = await supabase.auth.updateUser({ password: passwordNew });
+                      if (error) {
+                        toast.error(error.message || 'Failed to update password');
+                        return;
+                      }
+                      toast.success('Password updated');
+                      setPasswordNew('');
+                      setPasswordConfirm('');
+                    } finally {
+                      setPasswordSaving(false);
+                    }
+                  }}
+                >
+                  {passwordSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Update Password
+                </Button>
               </CardContent>
             </Card>
 
@@ -164,11 +565,66 @@ export function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label>School Logo</Label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                    Logo
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="School logo" className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Logo</span>
+                    )}
                   </div>
-                  <Button variant="outline">Upload Logo</Button>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Logo URL (paste and save)"
+                      value={logoUrl ?? ''}
+                      onChange={(e) => setLogoUrl(e.target.value || null)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={logoUploading}
+                        onClick={async () => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (!file) return;
+                            setLogoUploading(true);
+                            try {
+                              const { data: up, error } = await supabase.storage
+                                .from('branding')
+                                .upload(`logo-${Date.now()}.${file.name.split('.').pop() || 'png'}`, file, { upsert: false });
+                              if (error) {
+                                toast.error(error.message || 'Upload failed. Create a storage bucket named "branding" in Supabase.');
+                                return;
+                              }
+                              const { data: { publicUrl } } = supabase.storage.from('branding').getPublicUrl(up.path);
+                              setSchoolLogoUrl(publicUrl);
+                              setLogoUrl(publicUrl);
+                              toast.success('Logo uploaded');
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Upload failed');
+                            } finally {
+                              setLogoUploading(false);
+                            }
+                          };
+                          input.click();
+                        }}
+                      >
+                        {logoUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Upload Logo
+                      </Button>
+                      <Button onClick={() => { setSchoolLogoUrl(logoUrl || null); toast.success('Logo URL saved'); }}>
+                        Save logo URL
+                      </Button>
+                      {logoUrl && (
+                        <Button variant="ghost" onClick={() => { setLogoUrl(null); setSchoolLogoUrl(null); toast.success('Logo cleared'); }}>
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">

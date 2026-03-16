@@ -136,36 +136,38 @@ export function StudentPortfolioPage() {
   const featuredItems = portfolioItems.filter(item => item.featured);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-white">My Digital Portfolio</h1>
-          <p className="text-gray-400 mt-1">Showcase your best academic work and achievements</p>
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-student">
+            My Digital Portfolio
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Showcase your best academic work and achievements</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-gray-600 text-gray-300">
+              <Button variant="outline">
                 <Share2 className="mr-2 h-4 w-4" />
                 Share Portfolio
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700">
+            <DialogContent>
               <DialogHeader>
-                <DialogTitle className="text-white">Share Your Portfolio</DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogTitle>Share Your Portfolio</DialogTitle>
+                <DialogDescription>
                   Generate a shareable link for teachers, counselors, or colleges
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="shareWith" className="text-gray-300">Share With</Label>
+                  <Label htmlFor="shareWith">Share With</Label>
                   <Select>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select recipient type" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectContent>
                       <SelectItem value="teacher">Teachers</SelectItem>
                       <SelectItem value="counselor">School Counselor</SelectItem>
                       <SelectItem value="college">College Admissions</SelectItem>
@@ -174,15 +176,14 @@ export function StudentPortfolioPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="shareLink" className="text-gray-300">Shareable Link</Label>
+                  <Label htmlFor="shareLink">Shareable Link</Label>
                   <div className="flex gap-2">
                     <Input
                       id="shareLink"
                       value="https://sms.school.edu/portfolio/student123"
                       readOnly
-                      className="bg-gray-700 border-gray-600 text-white"
                     />
-                    <Button variant="outline" className="border-gray-600 text-gray-300">
+                    <Button variant="outline">
                       Copy
                     </Button>
                   </div>
@@ -202,31 +203,31 @@ export function StudentPortfolioPage() {
           </Dialog>
           <Dialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full sm:w-auto bg-role-student hover:bg-role-student/90">
                 <Upload className="mr-2 h-4 w-4" />
                 Add Work
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white">Add to Portfolio</DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogTitle>Add to Portfolio</DialogTitle>
+                <DialogDescription>
                   Upload your best academic work
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <Label htmlFor="itemTitle" className="text-gray-300">Title</Label>
-                    <Input id="itemTitle" className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="itemTitle">Title</Label>
+                    <Input id="itemTitle" />
                   </div>
                   <div>
-                    <Label htmlFor="itemSubject" className="text-gray-300">Subject</Label>
+                    <Label htmlFor="itemSubject">Subject</Label>
                     <Select>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectContent>
                         <SelectItem value="math">Mathematics</SelectItem>
                         <SelectItem value="science">Science</SelectItem>
                         <SelectItem value="english">English</SelectItem>
@@ -237,12 +238,12 @@ export function StudentPortfolioPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="itemType" className="text-gray-300">Type</Label>
+                    <Label htmlFor="itemType">Type</Label>
                     <Select>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectContent>
                         <SelectItem value="essay">Essay/Paper</SelectItem>
                         <SelectItem value="project">Project</SelectItem>
                         <SelectItem value="artwork">Artwork</SelectItem>
@@ -252,36 +253,35 @@ export function StudentPortfolioPage() {
                     </Select>
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="itemDescription" className="text-gray-300">Description</Label>
+                    <Label htmlFor="itemDescription">Description</Label>
                     <Textarea
                       id="itemDescription"
                       placeholder="Describe your work..."
-                      className="bg-gray-700 border-gray-600 text-white"
                       rows={3}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="itemGrade" className="text-gray-300">Grade Received (Optional)</Label>
-                    <Input id="itemGrade" placeholder="e.g., A+" className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="itemGrade">Grade Received (Optional)</Label>
+                    <Input id="itemGrade" placeholder="e.g., A+" />
                   </div>
                   <div>
-                    <Label htmlFor="itemTags" className="text-gray-300">Tags</Label>
-                    <Input id="itemTags" placeholder="Separate with commas" className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="itemTags">Tags</Label>
+                    <Input id="itemTags" placeholder="Separate with commas" />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-gray-300">Upload File</Label>
-                    <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-gray-500 transition-colors cursor-pointer">
-                      <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-400">Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, DOC, JPG, PNG, MP4 (Max 50MB)</p>
+                    <Label>Upload File</Label>
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-border/80 transition-colors cursor-pointer">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, DOC, JPG, PNG, MP4 (Max 50MB)</p>
                     </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsAddItemOpen(false)} className="border-gray-600 text-gray-300">
+                  <Button variant="outline" onClick={() => setIsAddItemOpen(false)}>
                     Cancel
                   </Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Add to Portfolio</Button>
+                  <Button className="bg-role-student hover:bg-role-student/90">Add to Portfolio</Button>
                 </div>
               </div>
             </DialogContent>
@@ -291,44 +291,44 @@ export function StudentPortfolioPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Total Items</CardDescription>
-            <CardTitle className="text-white text-3xl">{portfolioItems.length}</CardTitle>
+            <CardDescription>Total Items</CardDescription>
+            <CardTitle className="text-3xl">{portfolioItems.length}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-400">In your portfolio</p>
+            <p className="text-sm text-muted-foreground">In your portfolio</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Featured</CardDescription>
-            <CardTitle className="text-white text-3xl text-blue-500">{featuredItems.length}</CardTitle>
+            <CardDescription>Featured</CardDescription>
+            <CardTitle className="text-3xl text-blue-600">{featuredItems.length}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-400">Best work highlighted</p>
+            <p className="text-sm text-muted-foreground">Best work highlighted</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Subjects</CardDescription>
-            <CardTitle className="text-white text-3xl">
+            <CardDescription>Subjects</CardDescription>
+            <CardTitle className="text-3xl">
               {new Set(portfolioItems.map(item => item.subject)).size}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-400">Areas covered</p>
+            <p className="text-sm text-muted-foreground">Areas covered</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Awards</CardDescription>
-            <CardTitle className="text-white text-3xl text-yellow-500">
+            <CardDescription>Awards</CardDescription>
+            <CardTitle className="text-3xl text-yellow-600">
               {portfolioItems.filter(item => item.type === 'certificate').length}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-400">Achievements</p>
+            <p className="text-sm text-muted-foreground">Achievements</p>
           </CardContent>
         </Card>
       </div>
@@ -336,15 +336,15 @@ export function StudentPortfolioPage() {
       {/* Tabs */}
       <Tabs defaultValue="all" className="space-y-4">
         <div className="flex items-center justify-between">
-          <TabsList className="bg-gray-800 border-gray-700">
+          <TabsList>
             <TabsTrigger value="all" className="data-[state=active]:bg-blue-600">All Work</TabsTrigger>
             <TabsTrigger value="featured" className="data-[state=active]:bg-blue-600">Featured</TabsTrigger>
           </TabsList>
           <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
+            <SelectContent>
               <SelectItem value="all">All Subjects</SelectItem>
               <SelectItem value="Science">Science</SelectItem>
               <SelectItem value="Mathematics">Mathematics</SelectItem>
@@ -359,9 +359,9 @@ export function StudentPortfolioPage() {
         <TabsContent value="all" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
+              <Card key={item.id} className="hover:border-border/80 transition-colors">
                 {item.thumbnailUrl && (
-                  <div className="relative h-48 bg-gray-700 rounded-t-lg overflow-hidden">
+                  <div className="relative h-48 bg-muted rounded-t-lg overflow-hidden">
                     <img
                       src={item.thumbnailUrl}
                       alt={item.title}
@@ -377,8 +377,8 @@ export function StudentPortfolioPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-white text-base">{item.title}</CardTitle>
-                      <CardDescription className="text-gray-400 text-sm mt-1">
+                      <CardTitle className="text-base">{item.title}</CardTitle>
+                      <CardDescription className="text-sm mt-1">
                         {item.subject}
                       </CardDescription>
                     </div>
@@ -388,27 +388,27 @@ export function StudentPortfolioPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-400 line-clamp-2">{item.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
                   {item.grade && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">Grade:</span>
+                      <span className="text-sm text-muted-foreground">Grade:</span>
                       <Badge className="bg-green-500/10 text-green-400">{item.grade}</Badge>
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1">
                     {item.tags.map((tag, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-400">
+                      <Badge key={idx} variant="outline" className="text-xs text-muted-foreground">
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                    <span className="text-xs text-gray-500">{item.dateAdded}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">{item.dateAdded}</span>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-300">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-300">
@@ -425,9 +425,9 @@ export function StudentPortfolioPage() {
         <TabsContent value="featured" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredItems.map((item) => (
-              <Card key={item.id} className="bg-gray-800 border-blue-500/50">
+              <Card key={item.id} className="border-blue-500/50">
                 {item.thumbnailUrl && (
-                  <div className="relative h-48 bg-gray-700 rounded-t-lg overflow-hidden">
+                  <div className="relative h-48 bg-muted rounded-t-lg overflow-hidden">
                     <img
                       src={item.thumbnailUrl}
                       alt={item.title}
@@ -441,8 +441,8 @@ export function StudentPortfolioPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-white text-base">{item.title}</CardTitle>
-                      <CardDescription className="text-gray-400 text-sm mt-1">
+                      <CardTitle className="text-base">{item.title}</CardTitle>
+                      <CardDescription className="text-sm mt-1">
                         {item.subject}
                       </CardDescription>
                     </div>
@@ -452,27 +452,27 @@ export function StudentPortfolioPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-400">{item.description}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                   {item.grade && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">Grade:</span>
+                      <span className="text-sm text-muted-foreground">Grade:</span>
                       <Badge className="bg-green-500/10 text-green-400">{item.grade}</Badge>
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1">
                     {item.tags.map((tag, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-400">
+                      <Badge key={idx} variant="outline" className="text-xs text-muted-foreground">
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                    <span className="text-xs text-gray-500">{item.dateAdded}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">{item.dateAdded}</span>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-300">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>

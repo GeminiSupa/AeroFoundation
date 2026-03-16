@@ -2,48 +2,108 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
-import { TrendingUp, BookOpen, ClipboardList, Bot } from 'lucide-react';
+import { TrendingUp, BookOpen, ClipboardList } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Progress } from '../ui/progress';
-import { AIInsights } from '../AIInsights';
+import { useQuery } from '@tanstack/react-query';
+import { getStudentDashboardStats, getStudentAverageGrade } from '../../lib/api/dashboard';
+import { getStudentAssignments } from '../../lib/api/assignments';
+import { getStudent } from '../../lib/api/students';
+import { getTimetableEntries } from '../../lib/api/timetable';
 
 export function StudentDashboard() {
   const { user } = useApp();
+  const navigate = useNavigate();
 
-  const schedule = [
-    { id: 1, subject: 'Mathematics', time: '9:00 AM', room: 'Room 201', teacher: 'Ms. Khan' },
-    { id: 2, subject: 'Physics', time: '10:00 AM', room: 'Room 305', teacher: 'Mr. Smith' },
-    { id: 3, subject: 'English', time: '11:00 AM', room: 'Room 102', teacher: 'Mrs. Brown' },
-    { id: 4, subject: 'Chemistry', time: '2:00 PM', room: 'Room 306', teacher: 'Dr. Lee' },
-  ];
+  const studentStats = useQuery({
+    queryKey: ['student-dashboard-stats', user?.id],
+    queryFn: async () => {
+      const r = await getStudentDashboardStats(user!.id);
+      if (!r.success) throw new Error(r.error || 'Failed to load dashboard stats');
+      return r.data!;
+    },
+    enabled: !!user?.id,
+  });
 
-  const assignments = [
-    { id: 1, title: 'Calculus Problem Set', subject: 'Mathematics', dueDate: 'Oct 22', status: 'pending' },
-    { id: 2, title: 'Physics Lab Report', subject: 'Physics', dueDate: 'Oct 20', status: 'submitted' },
-    { id: 3, title: 'Essay on Shakespeare', subject: 'English', dueDate: 'Oct 25', status: 'pending' },
-  ];
+  const averageGrade = useQuery({
+    queryKey: ['student-average-grade', user?.id],
+    queryFn: async () => {
+      const r = await getStudentAverageGrade(user!.id);
+      if (!r.success) throw new Error(r.error || 'Failed to load average grade');
+      return r.data ?? 0;
+    },
+    enabled: !!user?.id,
+  });
 
-  const aiInsights = [
-    { subject: 'Mathematics', performance: 85, trend: 'up', suggestion: 'Great progress! Focus on calculus for even better results.' },
-    { subject: 'Physics', performance: 78, trend: 'stable', suggestion: 'Consider reviewing mechanics concepts.' },
-    { subject: 'Chemistry', performance: 92, trend: 'up', suggestion: 'Excellent work! Keep up the momentum.' },
-  ];
+  const assignmentsQuery = useQuery({
+    queryKey: ['student-assignments', user?.id],
+    queryFn: async () => {
+      const r = await getStudentAssignments(user!.id);
+      if (!r.success) throw new Error(r.error || 'Failed to load assignments');
+      return r.data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const todaySchedule = useQuery({
+    queryKey: ['student-today-schedule', user?.id],
+    queryFn: async () => {
+      const studentRes = await getStudent(user!.id);
+      if (!studentRes.success) {
+        const err = (studentRes as { success: false; error: string }).error;
+        throw new Error(err || 'Failed to load student record');
+      }
+      const classId = studentRes.data?.class_id as string | undefined;
+      if (!classId) return [];
+
+      // timetable_entries uses 0=Monday..6=Sunday, JS is 0=Sunday..6=Saturday
+      const dayOfWeek = (new Date().getDay() + 6) % 7;
+      const r = await getTimetableEntries({ classId, dayOfWeek });
+      if (!r.success) throw new Error(r.error || 'Failed to load timetable');
+      return r.data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const schedule = (todaySchedule.data || []).map((e: any) => ({
+    id: e.id,
+    subject: e.subject_name || e.class_name || 'Class',
+    teacher: e.teacher_name || 'Teacher',
+    room: e.room || '—',
+    time: e.start_time && e.end_time ? `${e.start_time} - ${e.end_time}` : (e.start_time || e.end_time || ''),
+  }));
+
+  const assignments = (assignmentsQuery.data || [])
+    .filter((a: any) => !a.dueDate || new Date(a.dueDate).getTime() >= Date.now())
+    .slice(0, 6)
+    .map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      subject: a.subject || a.className,
+      dueDate: a.dueDate ? new Date(a.dueDate).toLocaleDateString() : 'No due date',
+      status: 'pending',
+    }));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1>Welcome back, {user?.name}</h1>
-        <p className="text-muted-foreground">Class {user?.class} • Ready to learn today?</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-role-student">Welcome back, {user?.name}</h1>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">Class {user?.class} • Ready to learn today?</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-attendance')}>
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Attendance</p>
-                <h2 className="mt-2">92%</h2>
-                <Progress value={92} className="mt-2" />
+                <p className="text-2xl font-semibold mt-1">
+                  {studentStats.isLoading ? '—' : `${studentStats.data?.attendancePercentage ?? 0}%`}
+                </p>
+                <div className="mt-2">
+                  <Progress value={studentStats.data?.attendancePercentage ?? 0} />
+                </div>
               </div>
               <div className="bg-blue-500 p-3 rounded-lg text-white">
                 <TrendingUp className="w-6 h-6" />
@@ -52,13 +112,17 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-grades')}>
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Average Grade</p>
-                <h2 className="mt-2">85%</h2>
-                <Badge className="mt-2" variant="secondary">+3% this month</Badge>
+                <p className="text-sm text-muted-foreground">Grades</p>
+                <p className="text-2xl font-semibold mt-1">
+                  {averageGrade.isLoading ? '—' : `${averageGrade.data ?? 0}%`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Average (graded items)
+                </p>
               </div>
               <div className="bg-green-500 p-3 rounded-lg text-white">
                 <BookOpen className="w-6 h-6" />
@@ -67,13 +131,15 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-todo')}>
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Assignments Due</p>
-                <h2 className="mt-2">2</h2>
-                <Badge className="mt-2" variant="destructive">Due this week</Badge>
+                <p className="text-sm text-muted-foreground">Assignments & To‑Do</p>
+                <p className="text-2xl font-semibold mt-1">
+                  {studentStats.isLoading ? '—' : (studentStats.data?.pendingAssignments ?? 0)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Pending assignments</p>
               </div>
               <div className="bg-orange-500 p-3 rounded-lg text-white">
                 <ClipboardList className="w-6 h-6" />
@@ -82,8 +148,6 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      <AIInsights role="student" />
 
       <Tabs defaultValue="schedule">
         <TabsList>
@@ -95,15 +159,29 @@ export function StudentDashboard() {
         <TabsContent value="schedule">
           <Card>
             <CardHeader>
-              <CardTitle>Today's Classes</CardTitle>
-              <CardDescription>Your schedule for today</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <CardTitle>Today's Classes</CardTitle>
+                  <CardDescription>Your schedule for today</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-[44px] sm:min-h-0 touch-manipulation" onClick={() => navigate('/student-schedule')}>View full schedule</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {schedule.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-blue-500 p-3 rounded-lg text-white">
+                {todaySchedule.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading today&apos;s schedule…</p>
+                ) : schedule.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No schedule items to show yet. Once your timetable is configured, today&apos;s classes will appear here.
+                  </p>
+                ) : schedule.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-500 p-3 rounded-lg text-white shrink-0">
                         <BookOpen className="w-5 h-5" />
                       </div>
                       <div>
@@ -111,7 +189,9 @@ export function StudentDashboard() {
                         <p className="text-sm text-muted-foreground">{item.teacher} • {item.room}</p>
                       </div>
                     </div>
-                    <Badge variant="outline">{item.time}</Badge>
+                    <Badge variant="outline" className="self-start sm:self-auto">
+                      {item.time}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -127,9 +207,18 @@ export function StudentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {assignments.map((assignment) => (
-                  <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
+                {assignmentsQuery.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading assignments…</p>
+                ) : assignments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No assignments to show yet. New assignments will appear here when created.
+                  </p>
+                ) : assignments.map((assignment) => (
+                  <div
+                    key={assignment.id}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg"
+                  >
+                    <div className="min-w-0">
                       <h4>{assignment.title}</h4>
                       <p className="text-sm text-muted-foreground">{assignment.subject} • Due: {assignment.dueDate}</p>
                     </div>
@@ -138,7 +227,9 @@ export function StudentDashboard() {
                         {assignment.status}
                       </Badge>
                       {assignment.status === 'pending' && (
-                        <Button size="sm">Submit</Button>
+                        <Button size="sm" className="whitespace-nowrap">
+                          Submit
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -151,30 +242,11 @@ export function StudentDashboard() {
         <TabsContent value="ai-insights">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-orange-500" />
-                AI Performance Insights
-              </CardTitle>
-              <CardDescription>Personalized recommendations based on your performance</CardDescription>
+              <CardTitle>Insights</CardTitle>
+              <CardDescription>Insights have been removed.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {aiInsights.map((insight, index) => (
-                  <div key={index} className="border rounded-lg p-4 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4>{insight.subject}</h4>
-                      <Badge variant={insight.trend === 'up' ? 'default' : 'secondary'}>
-                        {insight.performance}%
-                      </Badge>
-                    </div>
-                    <Progress value={insight.performance} className="mb-2" />
-                    <p className="text-sm text-muted-foreground flex items-start gap-2">
-                      <Bot className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                      {insight.suggestion}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">No AI insights are shown.</p>
             </CardContent>
           </Card>
         </TabsContent>

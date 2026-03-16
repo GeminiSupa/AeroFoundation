@@ -183,30 +183,35 @@ export function StudentToDoPage() {
   const completionRate = Math.round((completedTasks / todoItems.length) * 100);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-white">My To-Do List</h1>
-          <p className="text-gray-400 mt-1">All your assignments, tests, and events in one place</p>
+          <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-student">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-student text-white">
+              <CheckCircle2 className="w-5 h-5" />
+            </span>
+            <span>My To-Do List</span>
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">All your assignments, tests, and events in one place</p>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Total Tasks</CardDescription>
-            <CardTitle className="text-white text-3xl">{totalTasks}</CardTitle>
+            <CardDescription>Total Tasks</CardDescription>
+            <CardTitle className="text-3xl">{totalTasks}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-400">Active items</p>
+            <p className="text-sm text-muted-foreground">Active items</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Due This Week</CardDescription>
-            <CardTitle className="text-white text-3xl">
+            <CardDescription>Due This Week</CardDescription>
+            <CardTitle className="text-3xl">
               {upcomingItems.filter(item => getDaysUntilDue(item.dueDate) <= 7).length}
             </CardTitle>
           </CardHeader>
@@ -214,33 +219,33 @@ export function StudentToDoPage() {
             <p className="text-sm text-yellow-400">Needs attention</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Completed</CardDescription>
-            <CardTitle className="text-white text-3xl text-green-500">{completedTasks}</CardTitle>
+            <CardDescription>Completed</CardDescription>
+            <CardTitle className="text-3xl text-green-600">{completedTasks}</CardTitle>
           </CardHeader>
           <CardContent>
             <Progress value={completionRate} className="h-2" />
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-gray-700">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Overdue</CardDescription>
-            <CardTitle className="text-white text-3xl text-red-500">{overdueItems.length}</CardTitle>
+            <CardDescription>Overdue</CardDescription>
+            <CardTitle className="text-3xl text-red-600">{overdueItems.length}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-red-400">Action required</p>
+            <p className="text-sm text-red-600">Action required</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
-              <CardTitle className="text-white">Filters</CardTitle>
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Filters</CardTitle>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -249,7 +254,7 @@ export function StudentToDoPage() {
                   checked={showCompleted}
                   onCheckedChange={(checked) => setShowCompleted(checked as boolean)}
                 />
-                <label htmlFor="showCompleted" className="text-sm text-gray-300 cursor-pointer">
+                <label htmlFor="showCompleted" className="text-sm text-muted-foreground cursor-pointer">
                   Show completed
                 </label>
               </div>
@@ -260,10 +265,10 @@ export function StudentToDoPage() {
           <div className="flex gap-4">
             <div className="flex-1">
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="assignment">Assignments</SelectItem>
                   <SelectItem value="test">Tests & Quizzes</SelectItem>
@@ -274,10 +279,10 @@ export function StudentToDoPage() {
             </div>
             <div className="flex-1">
               <Select value={filterSubject} onValueChange={setFilterSubject}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
                   <SelectItem value="Mathematics">Mathematics</SelectItem>
                   <SelectItem value="Chemistry">Chemistry</SelectItem>
@@ -293,7 +298,7 @@ export function StudentToDoPage() {
 
       {/* Tabs for organization */}
       <Tabs defaultValue="upcoming" className="space-y-4">
-        <TabsList className="bg-gray-800 border-gray-700">
+        <TabsList>
           <TabsTrigger value="upcoming" className="data-[state=active]:bg-blue-600">
             Upcoming ({upcomingItems.length})
           </TabsTrigger>
@@ -309,17 +314,17 @@ export function StudentToDoPage() {
 
         <TabsContent value="upcoming" className="space-y-3">
           {upcomingItems.length === 0 ? (
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardContent className="py-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-400">No upcoming tasks!</p>
+                <p className="text-muted-foreground">No upcoming tasks!</p>
               </CardContent>
             </Card>
           ) : (
             upcomingItems
               .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
               .map((item) => (
-                <Card key={item.id} className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
+                <Card key={item.id} className="hover:border-border/80 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <Checkbox
@@ -330,13 +335,13 @@ export function StudentToDoPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-white">{item.title}</h3>
+                              <h3 className="font-medium">{item.title}</h3>
                               <Badge className={getTypeColor(item.type)}>
                                 {getTypeIcon(item.type)}
                                 <span className="ml-1">{item.type}</span>
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-400 mb-2">{item.subject}</p>
+                            <p className="text-sm text-muted-foreground mb-2">{item.subject}</p>
                             {item.description && (
                               <p className="text-sm text-gray-500 mb-2">{item.description}</p>
                             )}
@@ -379,7 +384,7 @@ export function StudentToDoPage() {
 
         <TabsContent value="overdue" className="space-y-3">
           {overdueItems.map((item) => (
-            <Card key={item.id} className="bg-gray-800 border-red-500/50">
+            <Card key={item.id} className="border-red-500/50">
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   <Checkbox checked={item.completed} />
@@ -387,7 +392,7 @@ export function StudentToDoPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-white">{item.title}</h3>
+                          <h3 className="font-medium">{item.title}</h3>
                           <Badge className={getTypeColor(item.type)}>
                             {getTypeIcon(item.type)}
                             <span className="ml-1">{item.type}</span>
@@ -397,7 +402,7 @@ export function StudentToDoPage() {
                             Overdue
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-400 mb-2">{item.subject}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{item.subject}</p>
                         {item.description && (
                           <p className="text-sm text-gray-500 mb-2">{item.description}</p>
                         )}
@@ -423,7 +428,7 @@ export function StudentToDoPage() {
           {filteredItems
             .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
             .map((item) => (
-              <Card key={item.id} className={`bg-gray-800 ${item.completed ? 'border-gray-700 opacity-60' : 'border-gray-700'}`}>
+              <Card key={item.id} className={`${item.completed ? 'opacity-60' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <Checkbox checked={item.completed} />
@@ -431,7 +436,7 @@ export function StudentToDoPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className={`${item.completed ? 'line-through text-gray-500' : 'text-white'}`}>
+                            <h3 className={`${item.completed ? 'line-through text-muted-foreground' : 'font-medium'}`}>
                               {item.title}
                             </h3>
                             <Badge className={getTypeColor(item.type)}>
@@ -445,9 +450,9 @@ export function StudentToDoPage() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-gray-400 mb-2">{item.subject}</p>
+                          <p className="text-sm text-muted-foreground mb-2">{item.subject}</p>
                           <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-gray-400">
+                            <div className="flex items-center gap-1 text-muted-foreground">
                               <Calendar className="h-4 w-4" />
                               {item.dueDate}
                             </div>

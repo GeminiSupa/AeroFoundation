@@ -1,10 +1,12 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { getDashboardRole } from '../../utils/roles';
+import type { UserRole } from '../../types';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: Array<'admin' | 'teacher' | 'student' | 'parent'>;
+  allowedRoles?: UserRole[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -27,9 +29,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
-  // Check role-based access
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={`/${user.role}-dashboard`} replace />;
+  // Check role-based access (owner/super_admin count as admin for admin routes)
+  if (allowedRoles && allowedRoles.length > 0) {
+    const effectiveRole = getDashboardRole(user.role);
+    const allowed = allowedRoles.includes(user.role) || allowedRoles.includes(effectiveRole);
+    if (!allowed) {
+      return <Navigate to={`/${effectiveRole}-dashboard`} replace />;
+    }
   }
 
   return <>{children}</>;

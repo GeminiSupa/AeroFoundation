@@ -1,104 +1,233 @@
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
+/* 1. Use the correct Tailwind v4 imports */
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* 2. SAP Fiori 3 - Quartz Light Theme */
 @layer base {
   :root {
-    /* Primary Colors */
-    --primary-blue: #0D6EFD;
-    --secondary-blue: #1E90FF;
-    --success-green: #28A745;
-    --accent-green: #20C997;
-    --accent-orange: #FF9800;
-    --warning-yellow: #FFC107;
+    /* SAP Fiori Shell & Canvas Backgrounds */
+    --sapBackgroundColor: #ffffff;           /* Shell background */
+    --sapShell_Background: #f7f7f7;         /* Canvas background */
+    --sapShell_BorderColor: #d3d3d3;        /* Shell borders */
     
-    /* Light Mode */
+    /* Primary Colors */
+    --sapBrandColor: #0070f3;               /* SAP Blue */
+    --sapHighlightColor: #0070f3;           /* Interactive elements */
+    --sapTextColor: #32363a;                /* Primary text */
+    --sapSecondaryTextColor: #6a6d70;       /* Secondary text */
+    
+    /* Semantic Colors (WCAG AA compliant) */
+    --sapPositiveColor: #107e3e;            /* Success/Green */
+    --sapNegativeColor: #bb0000;            /* Error/Red */
+    --sapCriticalColor: #e9730c;            /* Warning/Orange */
+    --sapInformativeColor: #0070f3;         /* Info/Blue */
+    --sapNeutralColor: #6a6d70;             /* Neutral/Gray */
+    
+    /* Role-Based Colors (Psychological & Accessible) */
+    --role-admin: #0A6ED1;                  /* Blue - Trust, Authority */
+    --role-teacher: #107E3E;                /* Green - Growth, Guidance */
+    --role-student: #6264D9;                /* Indigo - Creativity, Energy */
+    --role-parent: #E9730C;                 /* Orange - Warmth, Support */
+    
+    /* Module-Based Colors (Professional & Distinct) */
+    --module-hr: #6366F1;                   /* Indigo - Authority, Professional */
+    --module-inventory: #14B8A6;            /* Teal - Material, Tracking */
+    --module-ai: #8B5CF6;                   /* Violet - Modern, Smart */
+    --module-classes: #A855F7;              /* Purple - Creative, Learning */
+    --module-scheduling: #3B82F6;           /* Blue - Planning, Orderly */
+    --module-leave: #F59E0B;                /* Amber - Personal, Time */
+    --module-finance: #10B981;              /* Green - Money, Growth */
+    --module-reports: #64748B;              /* Slate - Data, Serious */
+    --module-audit: #991B1B;                /* Maroon - Security, Critical */
+    --module-announcements: #0EA5E9;        /* Sky Blue - Communication */
+    --module-messages: #06B6D4;             /* Cyan - Interaction */
+    --module-settings: #6B7280;             /* Gray - Utility, Neutral */
+    
+    /* List & Tile Backgrounds (Opaque) */
+    --sapList_Background: #ffffff;
+    --sapTile_Background: #ffffff;
+    --sapTile_BorderColor: #e5e5e5;
+    
+    /* Border & Divider Colors */
+    --sapContent_DividerColor: #d3d3d3;
+    --sapField_BorderColor: #89919a;
+    
+    /* Hover & Focus States */
+    --sapList_Hover_Background: #f5f5f5;
+    --sapButton_Hover_Background: #0057d2;
+    --sapContent_ContrastFocusColor: #0057d2;
+    
+    /* Shadow & Elevation */
+    --sapShadow_Depth: 0px 2px 8px 0px rgba(0, 0, 0, 0.1);
+    --sapShadow_Depth_Header: 0px 2px 12px 0px rgba(0, 0, 0, 0.15);
+    
+    /* Legacy Tailwind mappings for compatibility */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 20%;                 /* #32363a */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 217 91% 52%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 52%;
-    --radius: 0.5rem;
-    --chart-1: 217 91% 52%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 36 100% 50%;
-    --chart-4: 199 89% 48%;
-    --chart-5: 27 96% 61%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 210 100% 48%;                /* #0070f3 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;           /* #6a6d70 */
+    --accent: 199 94% 36%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 37%;              /* #bb0000 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 83%;                     /* #d3d3d3 */
+    --input: 0 0% 83%;
+    --ring: 210 100% 48%;
+    --radius: 0.25rem;                      /* SAP Fiori uses 4px border radius */
   }
 
+  /* SAP Fiori Dark Theme (Quartz Dark) */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 52%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217 91% 52%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --sapBackgroundColor: #1d1d1d;
+    --sapShell_Background: #2c2c2c;
+    --sapShell_BorderColor: #515559;
+    --sapBrandColor: #4db1ff;
+    --sapHighlightColor: #4db1ff;
+    --sapTextColor: #e5e5e5;
+    --sapSecondaryTextColor: #89919a;
+    --sapPositiveColor: #6dc14f;
+    --sapNegativeColor: #ff7c90;
+    --sapCriticalColor: #ffb738;
+    --sapInformativeColor: #4db1ff;
+    --sapNeutralColor: #89919a;
+    --sapList_Background: #1d1d1d;
+    --sapTile_Background: #2c2c2c;
+    --sapTile_BorderColor: #515559;
+    --sapContent_DividerColor: #515559;
+    --sapField_BorderColor: #89919a;
+    --sapList_Hover_Background: #383e41;
+    --sapButton_Hover_Background: #78caff;
+    --sapContent_ContrastFocusColor: #78caff;
+    --sapShadow_Depth: 0px 2px 8px 0px rgba(0, 0, 0, 0.3);
+    --sapShadow_Depth_Header: 0px 2px 12px 0px rgba(0, 0, 0, 0.4);
+    
+    /* Legacy mappings for dark */
+    --background: 0 0% 11%;
+    --foreground: 0 0% 90%;
+    --card: 0 0% 17%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 17%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 201 100% 75%;
+    --primary-foreground: 0 0% 11%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 54%;
+    --accent: 191 100% 39%;
+    --accent-foreground: 0 0% 90%;
+    --destructive: 0 100% 73%;
+    --destructive-foreground: 0 0% 11%;
+    --border: 0 0% 32%;
+    --input: 0 0% 32%;
+    --ring: 201 100% 75%;
   }
 
-  /* --- THIS BLOCK IS THE FIX --- */
+  /* Base styles applied using regular CSS */
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+    background-color: var(--sapBackgroundColor);
+    color: var(--sapTextColor);
+    font-family: 'Segoe UI', 'Roboto', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.875rem;                    /* 14px - SAP Fiori standard */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  /* --- END OF FIX --- */
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Roboto Condensed', system-ui, -apple-system, sans-serif;
+    font-family: 'Segoe UI', 'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
   
   h1 {
-    font-size: 2rem;
-    line-height: 1.5;
+    font-size: 2.125rem;                    /* 34px */
+    line-height: 1.25;
+    color: var(--sapTextColor);
   }
   
   h2 {
-    font-size: 1.5rem;
-    line-height: 1.5;
+    font-size: 1.75rem;                     /* 28px */
+    line-height: 1.3;
+    color: var(--sapTextColor);
   }
   
   h3 {
-    font-size: 1.125rem;
-    line-height: 1.5;
+    font-size: 1.25rem;                     /* 20px */
+    line-height: 1.4;
+    color: var(--sapTextColor);
   }
   
   h4 {
-    font-size: 1rem;
-    line-height: 1.5;
+    font-size: 1.125rem;                    /* 18px */
+    line-height: 1.4;
+    color: var(--sapTextColor);
   }
   
-  p {
-    font-size: 1rem;
-    line-height: 1.5;
+  /* WCAG AA compliant focus states */
+  *:focus-visible {
+    outline: 2px solid var(--sapContent_ContrastFocusColor);
+    outline-offset: 2px;
+  }
+  
+  /* Opaque backgrounds for all interactive elements */
+  input, select, textarea, button {
+    background-color: var(--sapList_Background);
+    border-color: var(--sapField_BorderColor);
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--sapBrandColor);
+    box-shadow: 0 0 0 1px var(--sapBrandColor);
+  }
+  
+  /* Links */
+  a {
+    color: var(--sapBrandColor);
+    text-decoration: none;
+  }
+  
+  a:hover {
+    text-decoration: underline;
+  }
+  
+  a:focus-visible {
+    outline: 2px solid var(--sapContent_ContrastFocusColor);
+    outline-offset: 2px;
+  }
+
+  /* SAP Fiori Card Styles with 3D Effect */
+  [data-slot="card"] {
+    box-shadow: var(--sapShadow_Depth);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  [data-slot="card"]:hover {
+    box-shadow: var(--sapShadow_Depth_Header);
+    transform: translateY(-2px);
+  }
+
+  /* SAP Fiori 3D Button Effects */
+  [data-slot="button"]:not([variant="ghost"]):not([variant="link"]) {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  [data-slot="button"]:hover:not([disabled]):not([variant="ghost"]):not([variant="link"]) {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+
+  [data-slot="button"]:active:not([disabled]):not([variant="ghost"]):not([variant="link"]) {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transform: translateY(0);
   }
 }

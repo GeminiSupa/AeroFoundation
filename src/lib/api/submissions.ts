@@ -1,4 +1,6 @@
 import type { ApiResponse } from '../../types/index';
+import { supabase } from '../supabaseClient';
+import { writeAuditLog } from './auditlogs';
 
 interface Submission {
   id: string;
@@ -23,24 +25,41 @@ export async function submitAssignment(data: {
   attachments?: File[];
 }): Promise<ApiResponse<Submission>> {
   try {
-    // TODO: Upload files to Supabase Storage
-    // TODO: Insert submission into database
-    
-    const newSubmission: Submission = {
-      id: Date.now().toString(),
-      assignmentId: data.assignmentId,
-      studentId: data.studentId,
-      studentName: 'Student Name', // TODO: Get from auth
+    const payload: any = {
+      assignment_id: data.assignmentId,
+      student_id: data.studentId,
       content: data.content,
-      submittedAt: new Date().toISOString(),
-      status: 'pending',
+      submitted_at: new Date().toISOString(),
+      status: 'submitted',
     };
-
-    return {
-      success: true,
-      data: newSubmission,
-      message: 'Assignment submitted successfully',
+    const { data: inserted, error } = await supabase
+      .from('submissions')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    const mapped: Submission = {
+      id: inserted.id,
+      assignmentId: inserted.assignment_id,
+      studentId: inserted.student_id,
+      studentName: inserted.student_name || '-',
+      content: inserted.content,
+      submittedAt: inserted.submitted_at,
+      grade: inserted.grade || undefined,
+      feedback: inserted.feedback || undefined,
+      status: inserted.grade ? 'graded' : 'pending',
     };
+    // audit log best-effort
+    const actor = (await supabase.auth.getUser()).data.user;
+    writeAuditLog({
+      actor_id: actor?.id || null,
+      actor_name: actor?.email || null,
+      action: 'submit_assignment',
+      entity: 'submission',
+      entity_id: mapped.id,
+      details: { assignment_id: mapped.assignmentId },
+    } as any);
+    return { success: true, data: mapped, message: 'Assignment submitted successfully' };
   } catch (error) {
     return {
       success: false,
@@ -54,24 +73,25 @@ export async function submitAssignment(data: {
  */
 export async function getAssignmentSubmissions(assignmentId: string): Promise<ApiResponse<Submission[]>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const mockSubmissions: Submission[] = [
-      {
-        id: '1',
-        assignmentId,
-        studentId: 'student-1',
-        studentName: 'John Doe',
-        content: 'My submission content',
-        submittedAt: '2025-10-20T10:30:00',
-        status: 'pending',
-      },
-    ];
-
-    return {
-      success: true,
-      data: mockSubmissions,
-    };
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('assignment_id', assignmentId)
+      .order('submitted_at', { ascending: false });
+    if (error) throw error;
+    const rows = data || [];
+    const mapped: Submission[] = rows.map((s: any) => ({
+      id: s.id,
+      assignmentId: s.assignment_id,
+      studentId: s.student_id,
+      studentName: s.student_name || '-',
+      content: s.content,
+      submittedAt: s.submitted_at,
+      grade: s.grade || undefined,
+      feedback: s.feedback || undefined,
+      status: (s.grade ? 'graded' : 'pending') as 'graded' | 'pending',
+    }));
+    return { success: true, data: mapped };
   } catch (error) {
     return {
       success: false,
@@ -88,22 +108,26 @@ export async function getStudentSubmission(
   studentId: string
 ): Promise<ApiResponse<Submission | null>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const submission: Submission = {
-      id: '1',
-      assignmentId,
-      studentId,
-      studentName: 'Student Name',
-      content: 'My submission',
-      submittedAt: '2025-10-20T10:30:00',
-      status: 'pending',
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('assignment_id', assignmentId)
+      .eq('student_id', studentId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { success: true, data: null };
+    const mapped: Submission = {
+      id: data.id,
+      assignmentId: data.assignment_id,
+      studentId: data.student_id,
+      studentName: data.student_name || '-',
+      content: data.content,
+      submittedAt: data.submitted_at,
+      grade: data.grade || undefined,
+      feedback: data.feedback || undefined,
+      status: data.grade ? 'graded' : 'pending',
     };
-
-    return {
-      success: true,
-      data: submission,
-    };
+    return { success: true, data: mapped };
   } catch (error) {
     return {
       success: false,
@@ -121,25 +145,35 @@ export async function gradeSubmission(data: {
   feedback?: string;
 }): Promise<ApiResponse<Submission>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const gradedSubmission: Submission = {
-      id: data.submissionId,
-      assignmentId: 'assignment-id',
-      studentId: 'student-id',
-      studentName: 'Student Name',
-      content: 'Submission content',
-      submittedAt: '2025-10-20T10:30:00',
-      grade: data.grade,
-      feedback: data.feedback,
-      status: 'graded',
+    const { data: updated, error } = await supabase
+      .from('submissions')
+      .update({ grade: data.grade, feedback: data.feedback, graded_at: new Date().toISOString() })
+      .eq('id', data.submissionId)
+      .select()
+      .single();
+    if (error) throw error;
+    const mapped: Submission = {
+      id: updated.id,
+      assignmentId: updated.assignment_id,
+      studentId: updated.student_id,
+      studentName: updated.student_name || '-',
+      content: updated.content,
+      submittedAt: updated.submitted_at,
+      grade: updated.grade || undefined,
+      feedback: updated.feedback || undefined,
+      status: updated.grade ? 'graded' : 'pending',
     };
-
-    return {
-      success: true,
-      data: gradedSubmission,
-      message: 'Submission graded successfully',
-    };
+    // audit log best-effort
+    const actor = (await supabase.auth.getUser()).data.user;
+    writeAuditLog({
+      actor_id: actor?.id || null,
+      actor_name: actor?.email || null,
+      action: 'grade_submission',
+      entity: 'submission',
+      entity_id: mapped.id,
+      details: { grade: mapped.grade },
+    } as any);
+    return { success: true, data: mapped, message: 'Submission graded successfully' };
   } catch (error) {
     return {
       success: false,

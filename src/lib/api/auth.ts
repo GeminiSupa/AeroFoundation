@@ -31,14 +31,23 @@ export async function signIn(data: LoginFormData): Promise<ApiResponse<UserProfi
       };
     }
 
-    // Fetch user profile from database
+    // Fetch user profile from database (same project – uses anon key + RLS)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      return {
+        success: false,
+        error: profileError.code === 'PGRST116'
+          ? 'Profile not found. Please contact administrator.'
+          : profileError.message || 'Could not load profile.',
+      };
+    }
+    if (!profile) {
       return {
         success: false,
         error: 'Profile not found. Please contact administrator.',
@@ -61,10 +70,18 @@ export async function signIn(data: LoginFormData): Promise<ApiResponse<UserProfi
       data: userProfile,
       message: 'Signed in successfully',
     };
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || 'An unexpected error occurred during sign in';
+    // "Failed to fetch" usually means wrong Supabase URL/key or network/CORS
+    if (typeof msg === 'string' && msg.toLowerCase().includes('failed to fetch')) {
+      return {
+        success: false,
+        error: 'Cannot reach server. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local (Supabase Dashboard > Settings > API), then restart the dev server.',
+      };
+    }
     return {
       success: false,
-      error: 'An unexpected error occurred during sign in',
+      error: msg,
     };
   }
 }
@@ -138,10 +155,17 @@ export async function getCurrentUserProfile(): Promise<ApiResponse<UserProfile>>
       success: true,
       data: userProfile,
     };
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || 'Failed to fetch user profile';
+    if (typeof msg === 'string' && msg.toLowerCase().includes('failed to fetch')) {
+      return {
+        success: false,
+        error: 'Cannot reach server. Check .env.local: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      };
+    }
     return {
       success: false,
-      error: 'Failed to fetch user profile',
+      error: msg,
     };
   }
 }

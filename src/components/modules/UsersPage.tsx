@@ -7,8 +7,7 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Switch } from '../ui/switch';
-import { Users, Plus, Search, Shield, Edit, Trash2, Key } from 'lucide-react';
+import { Users, Plus, Search, Trash2, GraduationCap, UserCheck, Shield, ShieldCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   Table,
@@ -20,159 +19,244 @@ import {
 } from '../ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getUsers, createUser, updateUser, deleteUser } from '../../lib/api/users';
+import { Skeleton } from '../ui/skeleton';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { AlertCircle } from 'lucide-react';
+import { isElevatedRole } from '../../utils/roles';
+
+const userSchema = z.object({
+  full_name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email'),
+  role: z.enum(['admin', 'teacher', 'student', 'parent']),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().optional(),
+});
 
 export function UsersPage() {
+  const queryClient = useQueryClient();
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [isEditPermissionsOpen, setIsEditPermissionsOpen] = useState(false);
-  const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: '',
-    password: ''
-  });
-  const [permissions, setPermissions] = useState({
-    dashboard: true,
-    users: false,
-    aiTools: false,
-    classes: false,
-    scheduling: false,
-    finance: false,
-    reports: false,
-    settings: false
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('students');
+  const [searchQuery, setSearchQuery] = useState('');
+  // Simple, opinionated defaults – RBAC is informational only for now,
+  // so we don't keep mutable per-user permission state here.
+
+  const form = useForm({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      full_name: '',
+      email: '',
+      role: 'student' as const,
+      password: '',
+      phone: '',
+    },
   });
 
-  const admins = [
-    { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Super Admin', status: 'active' },
-    { id: 2, name: 'Jane Smith', email: 'jane@school.com', role: 'Admin', status: 'active' },
-  ];
+  // Fetch users based on active tab
+  const { data: allUsers, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const result = await getUsers();
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+  });
 
-  const teachers = [
-    { id: 1, name: 'Ms. Khan', email: 'khan@school.com', subject: 'Mathematics', classes: 5, status: 'active' },
-    { id: 2, name: 'Mr. Smith', email: 'smith@school.com', subject: 'Physics', classes: 4, status: 'active' },
-    { id: 3, name: 'Mrs. Brown', email: 'brown@school.com', subject: 'English', classes: 6, status: 'leave' },
-  ];
+  // Filter users based on role and search
+  const filteredUsers = allUsers?.filter(user => {
+    const roleMatch = activeTab === 'students' && user.role === 'student' ||
+                     activeTab === 'teachers' && user.role === 'teacher' ||
+                     activeTab === 'admins' && isElevatedRole(user.role);
+    const searchMatch = searchQuery === '' || 
+                       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       user.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    return roleMatch && searchMatch;
+  }) || [];
 
-  const students = [
-    { id: 1, name: 'John Doe', email: 'john@student.com', class: '10A', attendance: 92, status: 'active' },
-    { id: 2, name: 'Sarah Smith', email: 'sarah@student.com', class: '8B', attendance: 95, status: 'active' },
-    { id: 3, name: 'Michael Brown', email: 'michael@student.com', class: '9A', attendance: 88, status: 'active' },
-  ];
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof userSchema>) => {
+      const result = await createUser({
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name,
+        role: data.role,
+        phone: data.phone,
+      });
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('User created successfully!');
+      setIsAddUserOpen(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create user');
+    },
+  });
 
-  const handleAddUser = () => {
-    if (!formData.name || !formData.email || !formData.role || !formData.password) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    
-    toast.success('User Added Successfully! ✅', {
-      description: `${formData.name} has been added as a ${formData.role}.`
-    });
-    
-    setIsAddUserOpen(false);
-    setFormData({ name: '', email: '', role: '', password: '' });
-  };
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      toast.success('User deleted successfully');
+      setDeleteUserId(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboardStats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete user');
+    },
+  });
 
-  const handleSavePermissions = () => {
-    toast.success('Permissions Updated ✅', {
-      description: 'User permissions have been successfully updated.'
-    });
-    setIsEditPermissionsOpen(false);
-  };
+  const handleAddUser = form.handleSubmit((data) => {
+    createUserMutation.mutate(data);
+  });
 
   const handleDeleteUser = () => {
-    toast.success('User Deleted', {
-      description: 'The user account has been removed from the system.'
-    });
-    setDeleteUserId(null);
-  };
-
-  const handleEditPermissions = (user: any) => {
-    setSelectedUser(user);
-    // Set default permissions based on role
-    setPermissions({
-      dashboard: true,
-      users: user.role === 'Super Admin' || user.role === 'Admin',
-      aiTools: user.role === 'Super Admin' || user.role === 'Admin',
-      classes: true,
-      scheduling: user.role === 'Super Admin' || user.role === 'Admin',
-      finance: user.role === 'Super Admin' || user.role === 'Admin',
-      reports: user.role === 'Super Admin' || user.role === 'Admin',
-      settings: user.role === 'Super Admin' || user.role === 'Admin'
-    });
-    setIsEditPermissionsOpen(true);
+    if (!deleteUserId) return;
+    deleteUserMutation.mutate(deleteUserId);
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-white flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-role-admin">
             <Users className="w-8 h-8" />
             User Management
           </h1>
-          <p className="text-gray-400 mt-1">Manage users, roles, and permissions</p>
+          <p className="text-muted-foreground mt-1">Manage users, roles, and permissions</p>
         </div>
-        <Button onClick={() => setIsAddUserOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setIsAddUserOpen(true)} className="bg-role-admin hover:bg-role-admin/90 shadow-md hover:shadow-lg transition-all">
           <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-400">Total Users</p>
-            <h2 className="mt-2 text-white text-3xl">1,323</h2>
-            <Badge className="mt-2 bg-green-500/10 text-green-400">Active</Badge>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {isLoading ? (
+          <>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Users</p>
+                    <h2 className="mt-2">{allUsers?.length || 0}</h2>
+                    <Badge className="mt-2" variant="secondary">Active</Badge>
+                  </div>
+                  <div className="bg-role-admin p-3 rounded-lg text-white">
+                    <Users className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-400">Students</p>
-            <h2 className="mt-2 text-white text-3xl">1,234</h2>
-            <Badge className="mt-2 bg-blue-500/10 text-blue-400">Enrolled</Badge>
-          </CardContent>
-        </Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Students</p>
+                    <h2 className="mt-2">{allUsers?.filter(u => u.role === 'student').length || 0}</h2>
+                    <Badge className="mt-2" variant="secondary">Enrolled</Badge>
+                  </div>
+                  <div className="bg-role-student p-3 rounded-lg text-white">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-400">Teachers</p>
-            <h2 className="mt-2 text-white text-3xl">87</h2>
-            <Badge className="mt-2 bg-purple-500/10 text-purple-400">Staff</Badge>
-          </CardContent>
-        </Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Teachers</p>
+                    <h2 className="mt-2">{allUsers?.filter(u => u.role === 'teacher').length || 0}</h2>
+                    <Badge className="mt-2" variant="secondary">Staff</Badge>
+                  </div>
+                  <div className="bg-role-teacher p-3 rounded-lg text-white">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-6">
-            <p className="text-sm text-gray-400">Admins</p>
-            <h2 className="mt-2 text-white text-3xl">2</h2>
-            <Badge className="mt-2 bg-orange-500/10 text-orange-400">Management</Badge>
-          </CardContent>
-        </Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Parents</p>
+                    <h2 className="mt-2">{allUsers?.filter(u => u.role === 'parent').length || 0}</h2>
+                    <Badge className="mt-2" variant="secondary">Registered</Badge>
+                  </div>
+                  <div className="bg-role-parent p-3 rounded-lg text-white">
+                    <UserCheck className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Admins</p>
+                    <h2 className="mt-2">{allUsers?.filter(u => isElevatedRole(u.role)).length || 0}</h2>
+                    <Badge className="mt-2" variant="secondary">Management</Badge>
+                  </div>
+                  <div className="bg-module-audit p-3 rounded-lg text-white">
+                    <Shield className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      <Card className="bg-gray-800 border-gray-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Search Users</CardTitle>
-          <CardDescription className="text-gray-400">Find users by name, email, or role</CardDescription>
+          <CardTitle>Search Users</CardTitle>
+          <CardDescription>Find users by name, email, or role</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <Input placeholder="Search users..." className="pl-9 bg-gray-700 border-gray-600 text-white" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search users..." 
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isLoading}
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="students" className="space-y-4">
-        <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="students" className="data-[state=active]:bg-blue-600">Students</TabsTrigger>
-          <TabsTrigger value="teachers" className="data-[state=active]:bg-blue-600">Teachers</TabsTrigger>
-          <TabsTrigger value="admins" className="data-[state=active]:bg-blue-600">Admins</TabsTrigger>
-          <TabsTrigger value="permissions" className="data-[state=active]:bg-blue-600">Permissions</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="teachers">Teachers</TabsTrigger>
+          <TabsTrigger value="admins">Admins</TabsTrigger>
         </TabsList>
 
         <TabsContent value="students">
@@ -181,53 +265,69 @@ export function UsersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Students</CardTitle>
-                  <CardDescription>Manage student accounts</CardDescription>
+                  <CardDescription>Manage student user accounts (use the Students module for full records)</CardDescription>
                 </div>
-                <Button size="sm">Import Students</Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Attendance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {students.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${student.email}`} />
-                            <AvatarFallback>{student.name.substring(0, 2)}</AvatarFallback>
-                          </Avatar>
-                          {student.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{student.email}</TableCell>
-                      <TableCell>{student.class}</TableCell>
-                      <TableCell>{student.attendance}%</TableCell>
-                      <TableCell>
-                        <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
-                          {student.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">Edit</Button>
-                          <Button size="sm" variant="destructive">Delete</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center p-6 text-destructive">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>Failed to load users</span>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No students found
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>{user.full_name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                            </Avatar>
+                            {user.full_name || 'No name'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="default">Active</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => setDeleteUserId(user.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -239,47 +339,64 @@ export function UsersPage() {
               <CardDescription>Manage teacher accounts and assignments</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Classes</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {teachers.map((teacher) => (
-                    <TableRow key={teacher.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.email}`} />
-                            <AvatarFallback>{teacher.name.substring(0, 2)}</AvatarFallback>
-                          </Avatar>
-                          {teacher.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{teacher.email}</TableCell>
-                      <TableCell>{teacher.subject}</TableCell>
-                      <TableCell>{teacher.classes} classes</TableCell>
-                      <TableCell>
-                        <Badge variant={teacher.status === 'active' ? 'default' : 'secondary'}>
-                          {teacher.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">Edit</Button>
-                          <Button size="sm" variant="destructive">Delete</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center p-6 text-destructive">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>Failed to load teachers</span>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No teachers found
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Teacher</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>{user.full_name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                            </Avatar>
+                            {user.full_name || 'No name'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="default">Active</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => setDeleteUserId(user.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -291,323 +408,198 @@ export function UsersPage() {
               <CardDescription>Manage admin accounts and privileges</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {admins.map((admin) => (
-                    <TableRow key={admin.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${admin.email}`} />
-                            <AvatarFallback>{admin.name.substring(0, 2)}</AvatarFallback>
-                          </Avatar>
-                          {admin.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{admin.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="default">{admin.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="default">{admin.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditPermissions(admin)}
-                            className="border-gray-600 text-gray-300"
-                          >
-                            <Shield className="h-4 w-4 mr-1" />
-                            Permissions
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center p-6 text-destructive">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>Failed to load admins</span>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No admins found
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>{user.full_name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                            </Avatar>
+                            {user.full_name || 'No name'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="default">Active</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => setDeleteUserId(user.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="permissions">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Role-Based Access Control
-              </CardTitle>
-              <CardDescription>Configure permissions for each user role</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <h4>Admin Permissions</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Full access to all modules and features</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Badge>Dashboard</Badge>
-                    <Badge>Users</Badge>
-                    <Badge>AI Tools</Badge>
-                    <Badge>Scheduling</Badge>
-                    <Badge>Finance</Badge>
-                    <Badge>Reports</Badge>
-                    <Badge>Settings</Badge>
-                    <Badge>Library</Badge>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <h4>Teacher Permissions</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Access to classes, students, and assignments</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Badge variant="secondary">Dashboard</Badge>
-                    <Badge variant="secondary">Classes</Badge>
-                    <Badge variant="secondary">Leave Management</Badge>
-                    <Badge variant="secondary">Library</Badge>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <h4>Student Permissions</h4>
-                  <p className="text-sm text-muted-foreground mt-1">View only access to personal data</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Badge variant="outline">Dashboard</Badge>
-                    <Badge variant="outline">Assignments</Badge>
-                    <Badge variant="outline">Grades (Read-only)</Badge>
-                    <Badge variant="outline">Library</Badge>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <h4>Parent Permissions</h4>
-                  <p className="text-sm text-muted-foreground mt-1">View children's data and manage payments</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Badge variant="outline">Dashboard</Badge>
-                    <Badge variant="outline">Child Performance</Badge>
-                    <Badge variant="outline">Finance</Badge>
-                    <Badge variant="outline">Leave Requests</Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent className="bg-gray-800 border-gray-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Add New User</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
               Create a new user account with role and permissions
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name" className="text-gray-300">Full Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter full name"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email" className="text-gray-300">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="user@school.com"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-            </div>
-            <div>
-              <Label htmlFor="role" className="text-gray-300">Role *</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="parent">Parent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="password" className="text-gray-300">Temporary Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter temporary password"
-                className="bg-gray-700 border-gray-600 text-white"
-              />
-              <p className="text-xs text-gray-500 mt-1">User will be prompted to change on first login</p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsAddUserOpen(false);
-                  setFormData({ name: '', email: '', role: '', password: '' });
-                }}
-                className="border-gray-600 text-gray-300"
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddUser} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Permissions Dialog */}
-      <Dialog open={isEditPermissionsOpen} onOpenChange={setIsEditPermissionsOpen}>
-        <DialogContent className="bg-gray-800 border-gray-700 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-400" />
-              Edit Permissions
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              {selectedUser && `Configure module access for ${selectedUser.name}`}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Dashboard</Label>
-                <p className="text-xs text-gray-500">View dashboard and analytics</p>
-              </div>
-              <Switch
-                checked={permissions.dashboard}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, dashboard: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">User Management</Label>
-                <p className="text-xs text-gray-500">Manage users and roles</p>
-              </div>
-              <Switch
-                checked={permissions.users}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, users: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">AI Tools</Label>
-                <p className="text-xs text-gray-500">Access AI features</p>
-              </div>
-              <Switch
-                checked={permissions.aiTools}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, aiTools: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Classes</Label>
-                <p className="text-xs text-gray-500">Manage classes and students</p>
-              </div>
-              <Switch
-                checked={permissions.classes}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, classes: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Scheduling</Label>
-                <p className="text-xs text-gray-500">Manage schedules and timetables</p>
-              </div>
-              <Switch
-                checked={permissions.scheduling}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, scheduling: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Finance</Label>
-                <p className="text-xs text-gray-500">Access financial data</p>
-              </div>
-              <Switch
-                checked={permissions.finance}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, finance: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Reports</Label>
-                <p className="text-xs text-gray-500">Generate and view reports</p>
-              </div>
-              <Switch
-                checked={permissions.reports}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, reports: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-white">Settings</Label>
-                <p className="text-xs text-gray-500">Modify system settings</p>
-              </div>
-              <Switch
-                checked={permissions.settings}
-                onCheckedChange={(checked) => setPermissions({ ...permissions, settings: checked })}
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditPermissionsOpen(false)}
-                className="border-gray-600 text-gray-300"
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSavePermissions} className="bg-blue-600 hover:bg-blue-700">
-                <Key className="h-4 w-4 mr-2" />
-                Save Permissions
-              </Button>
-            </div>
-          </div>
+          <Form {...form}>
+            <form onSubmit={handleAddUser} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="full_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter full name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address *</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} placeholder="user@school.com" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="parent">Parent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password *</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddUserOpen(false);
+                      form.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createUserMutation.isPending}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {createUserMutation.isPending ? 'Creating...' : 'Add User'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete User Account?</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
+            <AlertDialogTitle>Delete User Account?</AlertDialogTitle>
+            <AlertDialogDescription>
               This action cannot be undone. The user will lose access to the system and all associated data will be archived.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-gray-600 text-gray-300">
+            <AlertDialogCancel>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (deleteUserId) {
+                  deleteUserMutation.mutate(deleteUserId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete User
             </AlertDialogAction>

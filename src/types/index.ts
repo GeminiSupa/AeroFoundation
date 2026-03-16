@@ -1,5 +1,5 @@
-// User Roles
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+// User Roles (owner and super_admin have full admin access)
+export type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'owner' | 'super_admin';
 
 // Login Form Data
 export interface LoginFormData {
@@ -142,23 +142,9 @@ export interface AttendanceRecord {
   markedAt: string;
 }
 
-// Leave Request
-export interface LeaveRequest {
-  id: string;
-  userId: string;
-  userName: string;
-  userRole: UserRole;
-  leaveType: 'sick' | 'casual' | 'emergency' | 'vacation' | 'other';
-  startDate: string;
-  endDate: string;
-  days: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  appliedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  reviewComments?: string;
-}
+export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+// LeaveRequest and LeaveFormData are defined in types.ts to match database schema
 
 // Lesson Plan
 export interface LessonPlan {
@@ -327,12 +313,6 @@ export interface AssignmentFormData {
   attachments?: File[];
 }
 
-export interface LeaveFormData {
-  leaveType: 'sick' | 'casual' | 'emergency' | 'vacation' | 'other';
-  startDate: string;
-  endDate: string;
-  reason: string;
-}
 
 export interface GradeFormData {
   studentId: string;

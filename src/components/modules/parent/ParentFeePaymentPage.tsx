@@ -99,13 +99,15 @@ export function ParentFeePaymentPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h2 className="flex items-center gap-2">
-          <DollarSign className="w-6 h-6" />
-          Fee Payment - {childFeeData.studentName}
-        </h2>
-        <p className="text-muted-foreground">Manage and pay your child's school fees</p>
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-parent">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-parent text-white">
+            <DollarSign className="w-5 h-5" />
+          </span>
+          <span>Fee Payment - {childFeeData.studentName}</span>
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base">Manage and pay your child's school fees</p>
       </div>
 
       {/* Overview Stats */}
@@ -226,7 +228,7 @@ export function ParentFeePaymentPage() {
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button size="sm" onClick={() => setSelectedFee(fee)}>
+                          <Button size="sm" onClick={() => setSelectedFee(fee)} className="bg-role-parent hover:bg-role-parent/90">
                             Pay Now
                           </Button>
                         </DialogTrigger>
@@ -305,7 +307,7 @@ export function ParentFeePaymentPage() {
                             <Button variant="outline" onClick={() => setIsPayingFee(false)}>
                               Cancel
                             </Button>
-                            <Button onClick={handlePayFee}>
+                            <Button onClick={handlePayFee} className="bg-role-parent hover:bg-role-parent/90">
                               <CreditCard className="w-4 h-4 mr-2" />
                               Pay ${fee.amount.toLocaleString()}
                             </Button>

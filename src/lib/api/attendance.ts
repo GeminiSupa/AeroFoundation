@@ -1,192 +1,238 @@
-import type { AttendanceRecord, ApiResponse } from '../../types';
+import { supabase } from '../supabaseClient';
+import { writeAuditLog } from './auditlogs';
+
+export interface AttendanceRecord {
+  id?: string;
+  attendance_date: string;
+  class_id: string;
+  student_id: string;
+  status: 'present' | 'absent' | 'late';
+  taken_by_teacher_id?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AttendanceReportRow {
+  id: string;
+  attendance_date: string;
+  status: 'present' | 'absent' | 'late';
+  class_name: string;
+  class_section?: string;
+  class_room?: string;
+  student_id: string;
+  roll_number: string;
+  student_name: string;
+  student_email: string;
+  teacher_name: string;
+  notes?: string;
+  created_at: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
 
 /**
- * Mark attendance for a class (Teacher only)
+ * Get students for a specific class
  */
-export async function markAttendance(data: {
-  classId: string;
-  date: string;
-  records: Array<{
-    studentId: string;
-    status: 'present' | 'absent' | 'late' | 'excused';
-    remarks?: string;
-  }>;
-  markedBy: string;
-}): Promise<ApiResponse<AttendanceRecord[]>> {
+export async function getStudentsForClass(classId: string): Promise<ApiResponse<any[]>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const attendanceRecords: AttendanceRecord[] = data.records.map((record) => ({
-      id: `${record.studentId}-${data.date}`,
-      studentId: record.studentId,
-      studentName: 'Student Name', // TODO: Fetch from database
-      classId: data.classId,
-      date: data.date,
-      status: record.status,
-      remarks: record.remarks,
-      markedBy: data.markedBy,
-      markedAt: new Date().toISOString(),
+    const { data, error } = await supabase
+      .from('students')
+      .select(`
+        id,
+        roll_number,
+        section,
+        status,
+        profile:profiles(id, full_name, email, avatar_url)
+      `)
+      .eq('class_id', classId)
+      .eq('status', 'active')
+      .order('roll_number', { ascending: true });
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      data: data || [],
+    };
+  } catch (error: any) {
+    console.error('Error fetching students for class:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch students',
+    };
+  }
+}
+
+/**
+ * Submit attendance records (upsert to handle updates)
+ */
+export async function submitAttendance(records: AttendanceRecord[]): Promise<ApiResponse<AttendanceRecord[]>> {
+  try {
+    if (!records || records.length === 0) {
+      return {
+        success: false,
+        error: 'No attendance records provided',
+      };
+    }
+
+    // Prepare records for upsert (include updated_at for each)
+    const recordsWithTimestamp = records.map(record => ({
+      ...record,
+      updated_at: new Date().toISOString(),
     }));
 
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .upsert(recordsWithTimestamp, {
+        onConflict: 'attendance_date,class_id,student_id',
+      })
+      .select();
+
+    if (error) throw error;
+
+    // Write audit log
+    const actor = (await supabase.auth.getUser()).data.user;
+    if (actor && records.length > 0) {
+      writeAuditLog({
+        actor_id: actor.id,
+        actor_name: actor.email || null,
+        action: 'submit_attendance',
+        entity: 'attendance_records',
+        entity_id: records[0].class_id,
+        details: { 
+          count: records.length,
+          date: records[0].attendance_date,
+        },
+      } as any);
+    }
+
     return {
       success: true,
-      data: attendanceRecords,
-      message: 'Attendance marked successfully',
+      data: data || [],
+      message: `Attendance submitted for ${records.length} students`,
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error submitting attendance:', error);
     return {
       success: false,
-      error: 'Failed to mark attendance',
+      error: error.message || 'Failed to submit attendance',
     };
   }
 }
 
 /**
- * Get attendance for a class on a specific date
+ * Get attendance report with filters (admin view)
  */
-export async function getClassAttendance(
-  classId: string,
-  date: string
-): Promise<ApiResponse<AttendanceRecord[]>> {
+export async function getAttendanceReport(filters?: {
+  startDate?: string;
+  endDate?: string;
+  classId?: string;
+  studentId?: string;
+}): Promise<ApiResponse<AttendanceReportRow[]>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const mockAttendance: AttendanceRecord[] = [
-      {
-        id: '1',
-        studentId: 'student-1',
-        studentName: 'John Doe',
-        classId,
-        date,
-        status: 'present',
-        markedBy: 'teacher-1',
-        markedAt: new Date().toISOString(),
-      },
-    ];
+    let query = supabase
+      .from('admin_attendance_report')
+      .select('*')
+      .order('attendance_date', { ascending: false });
+
+    if (filters?.startDate) {
+      query = query.gte('attendance_date', filters.startDate);
+    }
+
+    if (filters?.endDate) {
+      query = query.lte('attendance_date', filters.endDate);
+    }
+
+    if (filters?.classId) {
+      query = query.eq('class_id', filters.classId);
+    }
+
+    if (filters?.studentId) {
+      query = query.eq('student_id', filters.studentId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
 
     return {
       success: true,
-      data: mockAttendance,
+      data: data || [],
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error fetching attendance report:', error);
     return {
       success: false,
-      error: 'Failed to fetch attendance',
+      error: error.message || 'Failed to fetch attendance report',
     };
   }
 }
 
 /**
- * Get attendance history for a student
+ * Get attendance for a specific student
  */
-export async function getStudentAttendance(
-  studentId: string,
-  startDate?: string,
-  endDate?: string
-): Promise<ApiResponse<AttendanceRecord[]>> {
+export async function getStudentAttendance(studentId: string, startDate?: string, endDate?: string): Promise<ApiResponse<AttendanceRecord[]>> {
   try {
-    // TODO: Replace with actual Supabase query
-    
-    const mockAttendance: AttendanceRecord[] = [
-      {
-        id: '1',
-        studentId,
-        studentName: 'Student Name',
-        classId: 'class-1',
-        date: '2025-10-20',
-        status: 'present',
-        markedBy: 'teacher-1',
-        markedAt: '2025-10-20T09:00:00',
-      },
-      {
-        id: '2',
-        studentId,
-        studentName: 'Student Name',
-        classId: 'class-1',
-        date: '2025-10-21',
-        status: 'present',
-        markedBy: 'teacher-1',
-        markedAt: '2025-10-21T09:00:00',
-      },
-    ];
+    let query = supabase
+      .from('attendance_records')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('attendance_date', { ascending: false });
+
+    if (startDate) {
+      query = query.gte('attendance_date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('attendance_date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
 
     return {
       success: true,
-      data: mockAttendance,
+      data: data || [],
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error fetching student attendance:', error);
     return {
       success: false,
-      error: 'Failed to fetch student attendance',
+      error: error.message || 'Failed to fetch student attendance',
     };
   }
 }
 
 /**
- * Get attendance statistics for a student
+ * Get attendance for a specific class on a specific date
  */
-export async function getStudentAttendanceStats(studentId: string): Promise<ApiResponse<{
-  totalDays: number;
-  presentDays: number;
-  absentDays: number;
-  lateDays: number;
-  percentage: number;
-}>> {
+export async function getClassAttendanceForDate(classId: string, date: string): Promise<ApiResponse<AttendanceRecord[]>> {
   try {
-    // TODO: Replace with actual Supabase query and calculations
-    
-    const stats = {
-      totalDays: 100,
-      presentDays: 92,
-      absentDays: 6,
-      lateDays: 2,
-      percentage: 92,
-    };
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('attendance_date', date)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
 
     return {
       success: true,
-      data: stats,
+      data: data || [],
     };
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error fetching class attendance:', error);
     return {
       success: false,
-      error: 'Failed to fetch attendance statistics',
-    };
-  }
-}
-
-/**
- * Update attendance record
- */
-export async function updateAttendance(
-  recordId: string,
-  status: 'present' | 'absent' | 'late' | 'excused',
-  remarks?: string
-): Promise<ApiResponse<AttendanceRecord>> {
-  try {
-    // TODO: Replace with actual Supabase query
-    
-    const updatedRecord: AttendanceRecord = {
-      id: recordId,
-      studentId: 'student-id',
-      studentName: 'Student Name',
-      classId: 'class-id',
-      date: new Date().toISOString().split('T')[0],
-      status,
-      remarks,
-      markedBy: 'teacher-id',
-      markedAt: new Date().toISOString(),
-    };
-
-    return {
-      success: true,
-      data: updatedRecord,
-      message: 'Attendance updated successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Failed to update attendance',
+      error: error.message || 'Failed to fetch class attendance',
     };
   }
 }

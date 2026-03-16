@@ -52,13 +52,15 @@ export function ParentChildProgressPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h2 className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6" />
-          {childData.name}'s Progress
-        </h2>
-        <p className="text-muted-foreground">Monitor your child's academic performance and attendance</p>
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-role-parent">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-role-parent text-white">
+            <BookOpen className="w-5 h-5" />
+          </span>
+          <span>{childData.name}'s Progress</span>
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base">Monitor your child's academic performance and attendance</p>
       </div>
 
       {/* Overview Stats */}
