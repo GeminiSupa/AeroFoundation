@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig({
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,7 +12,7 @@ export default defineConfig({
   },
     build: {
       target: 'esnext',
-      outDir: 'build',
+      outDir: 'dist',
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
