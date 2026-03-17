@@ -1,3 +1,5 @@
+ 'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Users, GraduationCap, TrendingUp, Bot, Calendar, UserPlus, Clock } from 'lucide-react';
@@ -5,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { useApp } from '../../context/AppContext';
 import { AIInsights } from '../AIInsights';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { AlertCircle } from 'lucide-react';
@@ -13,7 +15,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export function AdminDashboard() {
   const { user } = useApp();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Fetch dashboard stats using TanStack Query
   const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery({
@@ -105,7 +107,7 @@ export function AdminDashboard() {
                 key={index}
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => navigate(`/${action.page}`)}
+                onClick={() => router.push(`/${action.page}`)}
               >
                 <div className={`${action.color} p-2 rounded-lg text-white mr-3`}>
                   {action.icon}

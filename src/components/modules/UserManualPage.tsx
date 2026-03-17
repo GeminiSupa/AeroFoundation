@@ -4,7 +4,7 @@ import { BookOpen, ArrowRight, Sparkles, CheckCircle2, Shield, Users, Graduation
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import manual from '../../../SYSTEM_USER_MANUAL.md?raw';
+import { systemUserManualMarkdown } from '../../content/systemUserManual';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Separator } from '../ui/separator';
@@ -52,7 +52,7 @@ export function UserManualPage() {
   const role = user?.role ?? 'admin';
   const current = roleSections[role] ?? roleSections.admin;
 
-  const raw = manual as string;
+  const raw = systemUserManualMarkdown;
   const lines = raw.split('\n');
 
   const filtered = useMemo(() => {

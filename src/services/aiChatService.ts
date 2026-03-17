@@ -19,12 +19,12 @@ export async function sendChatMessage(
   messages: ChatMessage[],
   systemPrompt?: string,
 ): Promise<ChatResponse> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 
   if (!apiKey) {
     return {
       success: false,
-      error: 'Groq API key is not configured. Add VITE_GROQ_API_KEY to your .env.local file.',
+      error: 'Groq API key is not configured. Add NEXT_PUBLIC_GROQ_API_KEY to your .env.local file.',
     };
   }
 

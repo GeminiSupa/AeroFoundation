@@ -1,8 +1,10 @@
+ 'use client';
+
 import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useApp } from '../../context/AppContext';
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { navMenuItems, getNavPath } from '../../config/navMenu';
 import { getSchoolLogoUrl, SCHOOL_LOGO_CHANGED_EVENT } from '../../utils/schoolBranding';
@@ -10,8 +12,8 @@ import { getDashboardRole } from '../../utils/roles';
 
 export function Sidebar() {
   const { user, setUser } = useApp();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(getSchoolLogoUrl());
 
@@ -29,7 +31,7 @@ export function Sidebar() {
     try {
       await supabase.auth.signOut();
       setUser(null);
-      navigate('/login');
+      router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -37,7 +39,7 @@ export function Sidebar() {
 
   const handleLogoClick = () => {
     const dashRole = getDashboardRole(user.role);
-    navigate(`/${dashRole}-dashboard`);
+    router.push(`/${dashRole}-dashboard`);
   };
 
   return (
@@ -70,13 +72,13 @@ export function Sidebar() {
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {userMenuItems.map((item) => {
           const path = getNavPath(user.role, item.page);
-          const isActive = location.pathname === path;
+          const isActive = pathname === path;
           return (
             <Button
               key={`${item.page}-${item.label}`}
               variant={isActive ? 'secondary' : 'ghost'}
               className={`w-full justify-start ${collapsed ? 'px-2' : ''}`}
-              onClick={() => navigate(path)}
+              onClick={() => router.push(path)}
             >
               {item.icon}
               {!collapsed && <span className="ml-3">{item.label}</span>}

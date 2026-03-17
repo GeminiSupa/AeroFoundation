@@ -1,10 +1,12 @@
+ 'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { BookOpen, ClipboardCheck, FileText, Calendar, AlertCircle, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -20,7 +22,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export function TeacherDashboard() {
   const { user } = useApp();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Fetch teacher dashboard stats
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
@@ -61,7 +63,7 @@ export function TeacherDashboard() {
           </p>
         </div>
         <Button
-          onClick={() => navigate('/teacher-leave')}
+          onClick={() => router.push('/teacher-leave')}
           className="min-h-[44px] touch-manipulation w-full sm:w-auto bg-role-teacher hover:bg-role-teacher/90"
         >
           <Calendar className="w-4 h-4 mr-2" />
@@ -167,7 +169,7 @@ export function TeacherDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate('/teacher-learning-hub')}
+                      onClick={() => router.push('/teacher-learning-hub')}
                     >
                       View Details
                     </Button>

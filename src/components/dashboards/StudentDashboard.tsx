@@ -1,10 +1,12 @@
+ 'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { TrendingUp, BookOpen, ClipboardList } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Progress } from '../ui/progress';
 import { useQuery } from '@tanstack/react-query';
 import { getStudentDashboardStats, getStudentAverageGrade } from '../../lib/api/dashboard';
@@ -14,7 +16,7 @@ import { getTimetableEntries } from '../../lib/api/timetable';
 
 export function StudentDashboard() {
   const { user } = useApp();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const studentStats = useQuery({
     queryKey: ['student-dashboard-stats', user?.id],
@@ -93,7 +95,7 @@ export function StudentDashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-attendance')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/student-attendance')}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -112,7 +114,7 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-grades')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/student-grades')}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -131,7 +133,7 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/student-todo')}>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/student-todo')}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -164,7 +166,7 @@ export function StudentDashboard() {
                   <CardTitle>Today's Classes</CardTitle>
                   <CardDescription>Your schedule for today</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-[44px] sm:min-h-0 touch-manipulation" onClick={() => navigate('/student-schedule')}>View full schedule</Button>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-[44px] sm:min-h-0 touch-manipulation" onClick={() => router.push('/student-schedule')}>View full schedule</Button>
               </div>
             </CardHeader>
             <CardContent>

@@ -1,3 +1,5 @@
+ 'use client';
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Lock, Mail, Sparkles, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { signIn } from '../../lib/api/auth';
 import { useApp } from '../../context/AppContext';
@@ -25,7 +27,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { setUser } = useApp();
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -76,7 +78,7 @@ export function LoginPage() {
         setUser(userData as any);
         toast.success('Login successful!');
         const dashboardRole = getDashboardRole(result.data.role);
-        navigate(`/${dashboardRole}-dashboard`);
+        router.push(`/${dashboardRole}-dashboard`);
       } else {
         const errorMessage = result.error || 'Login failed. Please check your credentials.';
         toast.error(errorMessage);

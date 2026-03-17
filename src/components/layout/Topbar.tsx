@@ -1,3 +1,5 @@
+ 'use client';
+
 import { Bell, Search, HelpCircle, Moon, Sun, X, BookOpen, Users, DollarSign, ClipboardList } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -19,7 +21,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { useApp } from '../../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { MobileNav } from './MobileNav';
 import { useQuery } from '@tanstack/react-query';
@@ -31,7 +33,7 @@ import { useState, useEffect } from 'react';
 
 export function Topbar() {
   const { user, theme, toggleTheme, setUser } = useApp();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [helpOpen, setHelpOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(getSchoolLogoUrl());
 
@@ -57,7 +59,7 @@ export function Topbar() {
 
   const handleLogoClick = () => {
     const dashRole = getDashboardRole(user.role);
-    navigate(`/${dashRole}-dashboard`);
+    router.push(`/${dashRole}-dashboard`);
   };
 
   const helpTopics = [
@@ -124,7 +126,7 @@ export function Topbar() {
               <DropdownMenuSeparator />
               {unreadCount > 0 ? (
                 <DropdownMenuItem 
-                  onClick={() => navigate(getNavPath(user.role, 'messages'))}
+                  onClick={() => router.push(getNavPath(user.role, 'messages'))}
                   className="flex flex-col items-start p-3 cursor-pointer"
                 >
                   <p className="text-sm font-medium">You have {unreadCount} unread message{unreadCount > 1 ? 's' : ''}</p>
@@ -132,7 +134,7 @@ export function Topbar() {
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem 
-                  onClick={() => navigate(getNavPath(user.role, 'messages'))}
+                  onClick={() => router.push(getNavPath(user.role, 'messages'))}
                   className="flex flex-col items-start p-3 cursor-pointer"
                 >
                   <p className="text-sm">No new messages</p>
@@ -140,7 +142,7 @@ export function Topbar() {
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate(getNavPath(user.role, 'messages'))}>
+              <DropdownMenuItem onClick={() => router.push(getNavPath(user.role, 'messages'))}>
                 Go to Messages
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -168,13 +170,13 @@ export function Topbar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate(getNavPath(user.role, 'settings'))}>
+              <DropdownMenuItem onClick={() => router.push(getNavPath(user.role, 'settings'))}>
                 Settings
               </DropdownMenuItem>
               <DropdownMenuItem onClick={async () => {
                 await supabase.auth.signOut();
                 setUser(null);
-                navigate('/login');
+                router.push('/login');
               }}>
                 Logout
               </DropdownMenuItem>

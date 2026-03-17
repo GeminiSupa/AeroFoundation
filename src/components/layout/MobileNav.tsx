@@ -1,8 +1,10 @@
+ 'use client';
+
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { Button } from '../ui/button';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 import { navMenuItems, getNavPath } from '../../config/navMenu';
@@ -10,8 +12,8 @@ import { navMenuItems, getNavPath } from '../../config/navMenu';
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { user, setUser } = useApp();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
 
   if (!user) return null;
 
@@ -19,7 +21,7 @@ export function MobileNav() {
 
   const handleNavigation = (page: string) => {
     const path = getNavPath(user.role, page);
-    navigate(path);
+    router.push(path);
     setOpen(false);
   };
 
@@ -54,7 +56,7 @@ export function MobileNav() {
           <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
             {userMenuItems.map((item) => {
               const path = getNavPath(user.role, item.page);
-              const isActive = location.pathname === path;
+              const isActive = pathname === path;
               return (
                 <Button
                   key={`${item.page}-${item.label}`}
@@ -76,7 +78,7 @@ export function MobileNav() {
               onClick={async () => {
                 await supabase.auth.signOut();
                 setUser(null);
-                navigate('/login');
+                router.push('/login');
                 setOpen(false);
               }}
             >

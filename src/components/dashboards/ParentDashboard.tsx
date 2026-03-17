@@ -1,3 +1,5 @@
+ 'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -5,14 +7,14 @@ import { User, TrendingUp, Calendar, DollarSign } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Progress } from '../ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { getParentDashboardStats } from '../../lib/api/dashboard';
 import { getParentFeeList } from '../../lib/api/finance';
 
 export function ParentDashboard() {
   const { user } = useApp();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { data: stats } = useQuery({
     queryKey: ['parentDashboardStats', user?.id],
     queryFn: async () => {
@@ -83,13 +85,13 @@ export function ParentDashboard() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-progress')}>
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => router.push('/parent-progress')}>
                   View Grades
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-leave')}>
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => router.push('/parent-leave')}>
                   Request Leave
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => navigate('/parent-progress')}>
+                <Button variant="outline" size="sm" className="flex-1 min-w-[100px]" onClick={() => router.push('/parent-progress')}>
                   Attendance
                 </Button>
               </div>
@@ -125,7 +127,7 @@ export function ParentDashboard() {
                   <p className="text-sm text-muted-foreground mb-3">
                     You have no unpaid invoices right now.
                   </p>
-                  <Button size="sm" onClick={() => navigate('/parent-fees')}>
+                <Button size="sm" onClick={() => router.push('/parent-fees')}>
                     View Fees
                   </Button>
                 </>
@@ -171,7 +173,7 @@ export function ParentDashboard() {
                   <Button
                     size="sm"
                     className="w-full"
-                    onClick={() => navigate('/parent-fees')}
+                    onClick={() => router.push('/parent-fees')}
                   >
                     View & Pay All Fees
                   </Button>

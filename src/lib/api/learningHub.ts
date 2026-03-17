@@ -316,8 +316,9 @@ export async function getLearningHubStats(userId: string, role: UserRole): Promi
                 .select('*', { count: 'exact', head: true })
                 .gte('attendance_date', thirtyDaysAgo);
 
-    stats.attendanceRate = totalAttendanceCount > 0
-      ? Math.round((presentCount || 0) / totalAttendanceCount * 100)
+    const totalAttendance = totalAttendanceCount ?? 0;
+    stats.attendanceRate = totalAttendance > 0
+      ? Math.round((presentCount || 0) / totalAttendance * 100)
       : 100;
 
     // Get upcoming assignments (next 7 days)

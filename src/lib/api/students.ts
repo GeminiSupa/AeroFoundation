@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../supabaseClient';
+import { supabase, getSupabaseAdmin } from '../supabaseClient';
 
 export interface StudentData {
   id: string;
@@ -89,6 +89,7 @@ export async function updateStudent(id: string, updates: Partial<StudentData>) {
 /** Upsert a student record (insert or update by id). Used for CSV import. */
 export async function upsertStudent(row: Partial<StudentData>): Promise<{ success: true; data: any } | { success: false; error: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin() as any;
     const { data, error } = await supabaseAdmin
       .from('students')
       .upsert(

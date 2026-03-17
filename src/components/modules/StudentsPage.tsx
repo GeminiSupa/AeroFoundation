@@ -25,7 +25,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStudents, getStudent, updateStudent, upsertStudent, deleteStudent } from '../../lib/api/students';
 import { getClasses } from '../../lib/api/timetable';
 import { getUsers, getParents, createUser } from '../../lib/api/users';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Skeleton } from '../ui/skeleton';
@@ -65,7 +65,7 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
 
 export function StudentsPage() {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewId, setViewId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -88,9 +88,8 @@ export function StudentsPage() {
   useEffect(() => {
     if (searchParams.get('action') === 'add') {
       setAddOpen(true);
-      setSearchParams(new URLSearchParams());
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams]);
 
   const [editForm, setEditForm] = useState<{
     roll_number: string;

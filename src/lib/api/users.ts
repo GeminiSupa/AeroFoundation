@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../supabaseClient';
+import { supabase, getSupabaseAdmin } from '../supabaseClient';
 import type { UserRole } from '../../types';
 
 export interface UserProfile {
@@ -28,6 +28,7 @@ export interface CreateUserData {
  */
 export async function createUser(data: CreateUserData) {
   try {
+    const supabaseAdmin = getSupabaseAdmin() as any;
     // Step 1: Ensure email is in allowed_users so handle_new_user trigger can set role
     const { error: rpcError } = await supabase.rpc('add_allowed_user', {
       p_email: data.email.trim().toLowerCase(),
@@ -200,6 +201,7 @@ export async function deactivateUser(id: string) {
  */
 export async function deleteUser(id: string) {
   try {
+    const supabaseAdmin = getSupabaseAdmin() as any;
     // Hard delete the auth user; cascades to profiles (and students/teachers) via FK.
     const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (error) throw error;

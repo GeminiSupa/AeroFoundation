@@ -1,9 +1,9 @@
 import { supabase } from '../supabaseClient';
 import type { ApiResponse } from '../../types';
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
+const GROQ_API_KEY = (process.env.NEXT_PUBLIC_GROQ_API_KEY || process.env.VITE_GROQ_API_KEY) as string | undefined;
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
-const DEFAULT_GROQ_MODEL = (import.meta.env.VITE_GROQ_MODEL as string | undefined) || 'llama-3.1-70b-versatile';
+const DEFAULT_GROQ_MODEL = ((process.env.NEXT_PUBLIC_GROQ_MODEL || process.env.VITE_GROQ_MODEL) as string | undefined) || 'llama-3.1-70b-versatile';
 
 export interface AIChatMessage {
   role: 'user' | 'model';
@@ -19,7 +19,7 @@ async function groqChatComplete(args: {
   maxTokens?: number;
 }): Promise<string> {
   if (!GROQ_API_KEY) {
-    throw new Error('AI is not configured. Set VITE_GROQ_API_KEY.');
+    throw new Error('AI is not configured. Set NEXT_PUBLIC_GROQ_API_KEY.');
   }
 
   const resp = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
