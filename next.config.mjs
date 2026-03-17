@@ -1,7 +1,16 @@
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Keep Vercel deployment simple; App Router default output.
+  turbopack: {
+    // Fix Next picking the wrong workspace root (and missing .env.local)
+    root: __dirname,
+  },
 };
 
 export default nextConfig;
