@@ -8,7 +8,7 @@ You can now **add users from the admin dashboard** without needing to access Sup
 ### 1. **Environment Variables** (`.env`)
 Added service role key to allow admin operations:
 ```env
-VITE_SUPABASE_SERVICE_ROLE_KEY=REDACTED_SERVICE_ROLE
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 ### 2. **Supabase Client** (`src/lib/supabaseClient.ts`)
