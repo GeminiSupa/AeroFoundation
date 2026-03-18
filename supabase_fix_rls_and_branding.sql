@@ -4,7 +4,12 @@
 -- causing infinite recursion. Drop the conflicting policy.
 -- =====================================================
 
-DROP POLICY IF EXISTS "classes_read" ON public.classes;
+DO $$
+BEGIN
+  IF to_regclass('public.classes') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "classes_read" ON public.classes';
+  END IF;
+END $$;
 -- "Anyone can view classes" (line 748 of original schema) already provides 
 -- authenticated SELECT access without referencing students.
 
