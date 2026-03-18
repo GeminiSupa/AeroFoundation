@@ -34,16 +34,16 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[min(300px,100vw)] p-0 flex flex-col">
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex items-center gap-2 p-4 border-b shrink-0">
-            <div className="w-8 h-8 bg-[#0D6EFD] rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">AI</span>
+          <div className="flex items-center gap-2 p-4 border-b shrink-0 bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/70">
+            <div className="w-8 h-8 bg-(--sapBrandColor) rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white text-sm font-bold">AS</span>
             </div>
-            <span className="font-semibold">SMS</span>
+            <span className="font-semibold">Aero School</span>
           </div>
 
           <div className="px-4 py-3 shrink-0">
             <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-              <div className="w-10 h-10 bg-[#0D6EFD] rounded-full flex items-center justify-center text-white font-semibold shrink-0">
+              <div className="w-10 h-10 bg-(--sapBrandColor) rounded-full flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
                 {user.name?.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -60,12 +60,19 @@ export function MobileNav() {
               return (
                 <Button
                   key={`${item.page}-${item.label}`}
-                  variant={isActive ? 'secondary' : 'ghost'}
-                  className={`w-full justify-start min-h-[44px] touch-manipulation ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
+                  variant="ghost"
+                  className={[
+                    'w-full justify-start min-h-[44px] touch-manipulation rounded-xl',
+                    'transition-[background-color,box-shadow,transform] duration-200',
+                    'hover:bg-muted/60 hover:shadow-sm active:scale-[0.99]',
+                    isActive
+                      ? 'bg-[linear-gradient(135deg,rgba(13,110,253,0.14),rgba(98,100,217,0.12),rgba(20,184,166,0.10))] border border-border shadow-sm'
+                      : 'border border-transparent',
+                  ].join(' ')}
                   onClick={() => handleNavigation(item.page)}
                 >
-                  {item.icon}
-                  <span className="ml-3">{item.label}</span>
+                  <span className="shrink-0">{item.icon}</span>
+                  <span className="ml-3 truncate">{item.label}</span>
                 </Button>
               );
             })}
@@ -74,7 +81,7 @@ export function MobileNav() {
           <div className="p-4 border-t shrink-0">
             <Button
               variant="ghost"
-              className="w-full justify-start text-destructive min-h-[44px] touch-manipulation"
+              className="w-full justify-start text-destructive min-h-[44px] touch-manipulation rounded-xl hover:bg-destructive/10 transition-colors"
               onClick={async () => {
                 await supabase.auth.signOut();
                 setUser(null);

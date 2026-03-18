@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'ERP Design',
-  description: 'School management system',
+  title: 'Aero School',
+  description: 'Aero School Management System',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
