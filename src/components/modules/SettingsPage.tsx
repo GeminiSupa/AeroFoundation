@@ -31,7 +31,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Skeleton } from '../ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { getSchoolLogoUrl, setSchoolLogoUrl } from '../../utils/schoolBranding';
+import { getSchoolLogoUrl, setSchoolLogoPath, setSchoolLogoUrl } from '../../utils/schoolBranding';
 
 const subjectSchema = z.object({
   name: z.string().min(1, 'Subject name is required'),
@@ -600,6 +600,7 @@ export function SettingsPage() {
                                 return;
                               }
                               const { data: { publicUrl } } = supabase.storage.from('branding').getPublicUrl(up.path);
+                              setSchoolLogoPath(up.path);
                               setSchoolLogoUrl(publicUrl);
                               setLogoUrl(publicUrl);
                               toast.success('Logo uploaded');

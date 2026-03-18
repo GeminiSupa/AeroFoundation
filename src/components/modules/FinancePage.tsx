@@ -166,7 +166,13 @@ export function FinancePage() {
   });
 
   // Use fallback zero stats when there's an error
-  const displayStats = stats ?? { totalCollected: 0, totalPending: 0, totalOverdue: 0, collectionRate: 0 };
+  const displayStatsRaw = stats ?? { totalCollected: 0, totalPending: 0, totalOverdue: 0, collectionRate: 0 };
+  const displayStats = {
+    totalCollected: Number((displayStatsRaw as any).totalCollected ?? 0),
+    totalPending: Number((displayStatsRaw as any).totalPending ?? 0),
+    totalOverdue: Number((displayStatsRaw as any).totalOverdue ?? 0),
+    collectionRate: Number((displayStatsRaw as any).collectionRate ?? 0),
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -360,7 +366,7 @@ export function FinancePage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Payment Method</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select method" />
@@ -428,7 +434,7 @@ export function FinancePage() {
                     feeStatus.map((fee: any) => (
                       <TableRow key={fee.id}>
                         <TableCell>{fee.student_name || 'Unknown'}</TableCell>
-                        <TableCell>PKR {fee.amount?.toFixed(2) || '0.00'}</TableCell>
+                        <TableCell>PKR {Number(fee?.amount ?? 0).toFixed(2)}</TableCell>
                         <TableCell>{fee.due_date || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge variant={
@@ -541,11 +547,20 @@ export function FinancePage() {
                     </div>
                     <div>
                       <Label>Payment Method</Label>
-                      <Input
-                        placeholder="bank_transfer"
+                      <Select
                         value={payrollForm.method}
-                        onChange={(e) => setPayrollForm((f) => ({ ...f, method: e.target.value }))}
-                      />
+                        onValueChange={(v) => setPayrollForm((f) => ({ ...f, method: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
+                          <SelectItem value="online">Online</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setIsAddPayrollOpen(false)}>
@@ -593,7 +608,7 @@ export function FinancePage() {
               {payrollLoading ? (
                 <TableRow><TableCell colSpan={4}>Loading...</TableCell></TableRow>
               ) : payrollError ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8"><div className="flex items-start gap-2 justify-center rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 inline-flex"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><span>Payroll data unavailable — check database permissions</span></div></TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-8"><div className="inline-flex items-start gap-2 justify-center rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"><AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /><span>Payroll data unavailable — check database permissions</span></div></TableCell></TableRow>
               ) : (payroll || []).length === 0 ? (
                 <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No payroll records yet</TableCell></TableRow>
               ) : (payroll as any[]).map((row) => (
@@ -610,70 +625,6 @@ export function FinancePage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-orange-500" />
-            AI Payment Predictions
-          </CardTitle>
-          <CardDescription>Predictive analytics for fee collection</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4 bg-orange-50 dark:bg-orange-950">
-              <div className="flex items-start gap-3">
-                <Bot className="w-5 h-5 text-orange-500 mt-1" />
-                <div>
-                  <h4>Late Payment Risk</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    AI predicts 15 students may delay payment this month based on historical patterns.
-                  </p>
-                  <Button size="sm" variant="outline" className="mt-3">View List</Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="w-5 h-5 text-blue-500 mt-1" />
-                <div>
-                  <h4>Revenue Forecast</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Expected collection for next month: PKR 42K (92% of total fees)
-                  </p>
-                  <Progress value={92} className="mt-3" />
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950">
-              <div className="flex items-start gap-3">
-                <Bot className="w-5 h-5 text-green-500 mt-1" />
-                <div>
-                  <h4>Optimal Reminder Timing</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    AI suggests sending payment reminders 3 days before due date for highest response rate.
-                  </p>
-                  <Button size="sm" className="mt-3">Schedule Reminders</Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4 bg-purple-50 dark:bg-purple-950">
-              <div className="flex items-start gap-3">
-                <DollarSign className="w-5 h-5 text-purple-500 mt-1" />
-                <div>
-                  <h4>Payment Plan Recommendations</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    5 families may benefit from flexible payment plans based on payment history.
-                  </p>
-                  <Button size="sm" variant="outline" className="mt-3">Review</Button>
-                </div>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

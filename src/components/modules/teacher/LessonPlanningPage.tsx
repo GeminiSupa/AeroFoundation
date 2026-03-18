@@ -188,29 +188,29 @@ export function LessonPlanningPage() {
                 AI Lesson Assistant
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl bg-gray-800 border-gray-700">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-orange-400" />
                   AI Lesson Plan Generator
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription>
                   Generate comprehensive lesson plans using AI
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="aiTopic" className="text-gray-300">Topic/Concept</Label>
-                    <Input id="aiTopic" placeholder="e.g., Quadratic Equations" className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="aiTopic">Topic/Concept</Label>
+                    <Input id="aiTopic" placeholder="e.g., Quadratic Equations" />
                   </div>
                   <div>
-                    <Label htmlFor="aiGrade" className="text-gray-300">Grade Level</Label>
+                    <Label htmlFor="aiGrade">Grade Level</Label>
                     <Select>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select grade" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectContent>
                         <SelectItem value="9">Grade 9</SelectItem>
                         <SelectItem value="10">Grade 10</SelectItem>
                         <SelectItem value="11">Grade 11</SelectItem>
@@ -219,20 +219,19 @@ export function LessonPlanningPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="aiDuration" className="text-gray-300">Duration (minutes)</Label>
-                    <Input id="aiDuration" type="number" placeholder="50" className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="aiDuration">Duration (minutes)</Label>
+                    <Input id="aiDuration" type="number" placeholder="50" />
                   </div>
                   <div>
-                    <Label htmlFor="aiStandards" className="text-gray-300">Curriculum Standards</Label>
-                    <Input id="aiStandards" placeholder="e.g., CCSS.MATH..." className="bg-gray-700 border-gray-600 text-white" />
+                    <Label htmlFor="aiStandards">Curriculum Standards</Label>
+                    <Input id="aiStandards" placeholder="e.g., CCSS.MATH..." />
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="aiObjectives" className="text-gray-300">Learning Objectives (Optional)</Label>
+                  <Label htmlFor="aiObjectives">Learning Objectives (Optional)</Label>
                   <Textarea
                     id="aiObjectives"
                     placeholder="Describe what students should learn..."
-                    className="bg-gray-700 border-gray-600 text-white"
                     rows={3}
                   />
                 </div>
@@ -244,35 +243,35 @@ export function LessonPlanningPage() {
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <div className="space-y-3 p-4 bg-gray-700 rounded-lg border border-orange-500/50">
-                    <h4 className="text-white flex items-center gap-2">
+                  <div className="space-y-3 p-4 bg-muted rounded-lg border border-orange-500/30">
+                    <h4 className="flex items-center gap-2 font-medium">
                       <Sparkles className="h-4 w-4 text-orange-400" />
                       Generated Content Preview
                     </h4>
                     <div className="space-y-2">
                       <div>
-                        <Label className="text-gray-300">Objectives:</Label>
-                        <ul className="list-disc list-inside ml-2 text-gray-400 text-sm">
+                        <Label>Objectives:</Label>
+                        <ul className="list-disc list-inside ml-2 text-muted-foreground text-sm">
                           {aiGeneratedContent.objectives.map((obj: string, idx: number) => (
                             <li key={idx}>{obj}</li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <Label className="text-gray-300">Activities:</Label>
-                        <ul className="list-disc list-inside ml-2 text-gray-400 text-sm">
+                        <Label>Activities:</Label>
+                        <ul className="list-disc list-inside ml-2 text-muted-foreground text-sm">
                           {aiGeneratedContent.activities.map((act: string, idx: number) => (
                             <li key={idx}>{act}</li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <Label className="text-gray-300">Materials:</Label>
-                        <p className="text-gray-400 text-sm ml-2">{aiGeneratedContent.materials.join(', ')}</p>
+                        <Label>Materials:</Label>
+                        <p className="text-muted-foreground text-sm ml-2">{aiGeneratedContent.materials.join(', ')}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-300">Assessment:</Label>
-                        <p className="text-gray-400 text-sm ml-2">{aiGeneratedContent.assessment}</p>
+                        <Label>Assessment:</Label>
+                        <p className="text-muted-foreground text-sm ml-2">{aiGeneratedContent.assessment}</p>
                       </div>
                     </div>
                   </div>

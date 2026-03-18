@@ -726,6 +726,28 @@ RETURNS BOOLEAN AS $$
   SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'owner', 'super_admin'));
 $$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
+CREATE OR REPLACE FUNCTION public.is_teacher_of_class(target_class_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM public.classes WHERE id = target_class_id AND teacher_id = auth.uid());
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_enrolled_in_class(target_class_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.class_enrollments
+    WHERE class_id = target_class_id AND student_id = auth.uid() AND status = 'active'
+  );
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_parent_of_student(target_student_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.students s
+    WHERE s.id = target_student_id AND s.parent_id = auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
 -- =====================================================
 -- 14. RLS POLICIES - PROFILES & CORE
 -- =====================================================
@@ -769,29 +791,6 @@ CREATE POLICY "Admins manage students" ON public.students FOR ALL USING (public.
 -- =====================================================
 -- 15. RLS - LEARNING HUB HELPERS & POLICIES
 -- =====================================================
-
-CREATE OR REPLACE FUNCTION public.is_admin_user()
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'owner', 'super_admin'));
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
-
-CREATE OR REPLACE FUNCTION public.is_teacher_of_class(target_class_id UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (SELECT 1 FROM public.classes WHERE id = target_class_id AND teacher_id = auth.uid());
-$$ LANGUAGE sql SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION public.is_enrolled_in_class(target_class_id UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (SELECT 1 FROM public.class_enrollments WHERE class_id = target_class_id AND student_id = auth.uid() AND status = 'active');
-$$ LANGUAGE sql SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION public.is_parent_of_student(target_student_id UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.students s
-    WHERE s.id = target_student_id AND s.parent_id = auth.uid()
-  );
-$$ LANGUAGE sql SECURITY DEFINER;
 
 -- Learning Hub table policies (allow service role / authenticated with helpers)
 DROP POLICY IF EXISTS "academic_sessions_admin_only" ON public.academic_sessions;

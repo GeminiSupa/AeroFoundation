@@ -64,7 +64,7 @@ export function MobileNav() {
                   className={[
                     'w-full justify-start min-h-[44px] touch-manipulation rounded-xl',
                     'transition-[background-color,box-shadow,transform] duration-200',
-                    'hover:bg-muted/60 hover:shadow-sm active:scale-[0.99]',
+                    'hover:bg-muted/60 hover:text-foreground hover:shadow-sm active:scale-[0.99]',
                     isActive
                       ? 'bg-[linear-gradient(135deg,rgba(13,110,253,0.14),rgba(98,100,217,0.12),rgba(20,184,166,0.10))] border border-border shadow-sm'
                       : 'border border-transparent',

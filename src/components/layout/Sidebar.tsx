@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { navMenuItems, getNavPath } from '../../config/navMenu';
-import { getSchoolLogoUrl, SCHOOL_LOGO_CHANGED_EVENT } from '../../utils/schoolBranding';
+import { getSchoolLogoPath, getSchoolLogoUrl, SCHOOL_LOGO_CHANGED_EVENT, setSchoolLogoUrl } from '../../utils/schoolBranding';
 import { getDashboardRole } from '../../utils/roles';
 
 export function Sidebar() {
@@ -16,12 +16,30 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(getSchoolLogoUrl());
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
 
   useEffect(() => {
-    const onLogoChange = () => setLogoUrl(getSchoolLogoUrl());
+    const onLogoChange = () => {
+      setLogoLoadFailed(false);
+      setLogoUrl(getSchoolLogoUrl());
+    };
     window.addEventListener(SCHOOL_LOGO_CHANGED_EVENT, onLogoChange);
     return () => window.removeEventListener(SCHOOL_LOGO_CHANGED_EVENT, onLogoChange);
   }, []);
+
+  useEffect(() => {
+    const resolveSignedLogoUrl = async () => {
+      if (!logoLoadFailed) return;
+      const path = getSchoolLogoPath();
+      if (!path) return;
+      const { data, error } = await supabase.storage.from('branding').createSignedUrl(path, 60 * 60 * 24);
+      if (error || !data?.signedUrl) return;
+      setSchoolLogoUrl(data.signedUrl);
+      setLogoUrl(data.signedUrl);
+      setLogoLoadFailed(false);
+    };
+    resolveSignedLogoUrl();
+  }, [logoLoadFailed]);
 
   if (!user) return null;
 
@@ -59,7 +77,12 @@ export function Sidebar() {
             aria-label="Go to Dashboard"
           >
             {logoUrl ? (
-              <img src={logoUrl} alt="School" className="h-8 w-auto max-w-[120px] object-contain" />
+              <img
+                src={logoUrl}
+                alt="School"
+                className="h-8 w-auto max-w-[120px] object-contain"
+                onError={() => setLogoLoadFailed(true)}
+              />
             ) : (
               <>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-(--sapBrandColor) text-white shadow-sm">
@@ -91,7 +114,7 @@ export function Sidebar() {
               className={[
                 'w-full justify-start rounded-xl min-h-[44px] touch-manipulation',
                 'transition-[background-color,box-shadow,transform] duration-200',
-                'hover:bg-muted/60 hover:shadow-sm active:scale-[0.99]',
+                'hover:bg-muted/60 hover:text-foreground hover:shadow-sm active:scale-[0.99]',
                 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 collapsed ? 'px-2' : '',
                 isActive
