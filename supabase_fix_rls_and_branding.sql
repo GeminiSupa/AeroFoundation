@@ -143,4 +143,22 @@ BEGIN
   END IF;
 END $$;
 
+-- Extra safety: override any recursive/legacy classes policies that may cause 42P17
+DO $$
+BEGIN
+  IF to_regclass('public.classes') IS NOT NULL THEN
+    -- Drop any existing classes policies that might be recursive
+    EXECUTE 'DROP POLICY IF EXISTS "Anyone can view classes" ON public.classes';
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can manage classes" ON public.classes';
+    EXECUTE 'DROP POLICY IF EXISTS "classes_read" ON public.classes';
+    EXECUTE 'DROP POLICY IF EXISTS "classes_manage" ON public.classes';
+
+    -- Simple, non-recursive policies:
+    --  - All authenticated users can view classes (used by timetable & dropdowns)
+    --  - Only admins can insert/update/delete classes
+    EXECUTE 'CREATE POLICY "classes_read_fix" ON public.classes FOR SELECT TO authenticated USING (true)';
+    EXECUTE 'CREATE POLICY "classes_manage_fix" ON public.classes FOR ALL USING (public.is_admin_user())';
+  END IF;
+END $$;
+
 SELECT 'All fixes applied successfully!' AS status;

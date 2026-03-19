@@ -783,7 +783,7 @@ CREATE POLICY "Teachers view students in their classes" ON public.students FOR S
   EXISTS (SELECT 1 FROM public.classes WHERE teacher_id = auth.uid() AND classes.id = students.class_id));
 
 DROP POLICY IF EXISTS "Parents view their children" ON public.students;
-CREATE POLICY "Parents view their children" ON public.students FOR SELECT USING (public.is_parent_of_student(students.id));
+CREATE POLICY "Parents view their children" ON public.students FOR SELECT USING (parent_id = auth.uid());
 
 DROP POLICY IF EXISTS "Admins manage students" ON public.students;
 CREATE POLICY "Admins manage students" ON public.students FOR ALL USING (public.is_admin_user());
@@ -803,59 +803,58 @@ CREATE POLICY "subjects_admin_manage" ON public.subjects FOR ALL USING (public.i
 
 DROP POLICY IF EXISTS "classes_read" ON public.classes;
 CREATE POLICY "classes_read" ON public.classes FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(id) OR public.is_enrolled_in_class(id) OR
+  public.is_admin_user() OR teacher_id = auth.uid() OR public.is_enrolled_in_class(id) OR
   EXISTS (SELECT 1 FROM public.class_enrollments ce JOIN public.students s ON s.id = ce.student_id WHERE ce.class_id = classes.id AND s.parent_id = auth.uid()));
 DROP POLICY IF EXISTS "classes_manage" ON public.classes;
-CREATE POLICY "classes_manage" ON public.classes FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(id));
+CREATE POLICY "classes_manage" ON public.classes FOR ALL USING (public.is_admin_user() OR teacher_id = auth.uid());
 
 DROP POLICY IF EXISTS "enrollments_read" ON public.class_enrollments;
 CREATE POLICY "enrollments_read" ON public.class_enrollments FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
+  public.is_admin_user() OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
 DROP POLICY IF EXISTS "enrollments_manage" ON public.class_enrollments;
-CREATE POLICY "enrollments_manage" ON public.class_enrollments FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(class_id));
+CREATE POLICY "enrollments_manage" ON public.class_enrollments FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "schedule_read" ON public.schedule_slots;
 CREATE POLICY "schedule_read" ON public.schedule_slots FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR public.is_enrolled_in_class(class_id) OR
+  public.is_admin_user() OR public.is_enrolled_in_class(class_id) OR
   EXISTS (SELECT 1 FROM public.class_enrollments ce JOIN public.students s ON s.id = ce.student_id WHERE ce.class_id = schedule_slots.class_id AND s.parent_id = auth.uid()));
 DROP POLICY IF EXISTS "schedule_manage" ON public.schedule_slots;
-CREATE POLICY "schedule_manage" ON public.schedule_slots FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(class_id));
+CREATE POLICY "schedule_manage" ON public.schedule_slots FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "attendance_read" ON public.attendance_records;
 CREATE POLICY "attendance_read" ON public.attendance_records FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
+  public.is_admin_user() OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
 DROP POLICY IF EXISTS "attendance_manage" ON public.attendance_records;
-CREATE POLICY "attendance_manage" ON public.attendance_records FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(class_id));
+CREATE POLICY "attendance_manage" ON public.attendance_records FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "assignments_read" ON public.assignments;
 CREATE POLICY "assignments_read" ON public.assignments FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR
+  public.is_admin_user() OR
   EXISTS (SELECT 1 FROM public.class_enrollments WHERE class_id = assignments.class_id AND student_id = auth.uid() AND status = 'active') OR
   EXISTS (SELECT 1 FROM public.class_enrollments ce JOIN public.students s ON s.id = ce.student_id WHERE ce.class_id = assignments.class_id AND s.parent_id = auth.uid()));
 DROP POLICY IF EXISTS "assignments_manage" ON public.assignments;
-CREATE POLICY "assignments_manage" ON public.assignments FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(class_id));
+CREATE POLICY "assignments_manage" ON public.assignments FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "submissions_read" ON public.assignment_submissions;
 CREATE POLICY "submissions_read" ON public.assignment_submissions FOR SELECT USING (
-  public.is_admin_user() OR student_id = auth.uid() OR public.is_parent_of_student(student_id) OR
-  public.is_teacher_of_class((SELECT class_id FROM public.assignments WHERE id = assignment_id)));
+  public.is_admin_user() OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
 DROP POLICY IF EXISTS "submissions_manage" ON public.assignment_submissions;
 CREATE POLICY "submissions_manage" ON public.assignment_submissions FOR ALL USING (
-  student_id = auth.uid() OR public.is_admin_user() OR public.is_teacher_of_class((SELECT class_id FROM public.assignments WHERE id = assignment_id)));
+  student_id = auth.uid() OR public.is_admin_user());
 
 DROP POLICY IF EXISTS "grades_read" ON public.grades;
 CREATE POLICY "grades_read" ON public.grades FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
+  public.is_admin_user() OR student_id = auth.uid() OR public.is_parent_of_student(student_id));
 DROP POLICY IF EXISTS "grades_manage" ON public.grades;
-CREATE POLICY "grades_manage" ON public.grades FOR ALL USING (public.is_admin_user() OR public.is_teacher_of_class(class_id));
+CREATE POLICY "grades_manage" ON public.grades FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "communications_read" ON public.class_communications;
 CREATE POLICY "communications_read" ON public.class_communications FOR SELECT USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR public.is_enrolled_in_class(class_id) OR
+  public.is_admin_user() OR public.is_enrolled_in_class(class_id) OR
   EXISTS (SELECT 1 FROM public.class_enrollments ce JOIN public.students s ON s.id = ce.student_id WHERE ce.class_id = class_communications.class_id AND s.parent_id = auth.uid()));
 DROP POLICY IF EXISTS "communications_manage" ON public.class_communications;
 CREATE POLICY "communications_manage" ON public.class_communications FOR ALL USING (
-  public.is_admin_user() OR public.is_teacher_of_class(class_id) OR author_id = auth.uid());
+  public.is_admin_user() OR author_id = auth.uid());
 
 -- =====================================================
 -- 16. RLS - LEAVE, FINANCE, MESSAGES, ETC.

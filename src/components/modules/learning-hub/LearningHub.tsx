@@ -1465,26 +1465,26 @@ export function LearningHub() {
         </DialogContent>
       </Dialog>
 
-      {/* Professional Timetable Manager - Rebuilt from Scratch */}
+      {/* School Timetable Manager - SAP/Inventory themed */}
       <Dialog open={timetableManagerOpen} onOpenChange={setTimetableManagerOpen}>
-        <DialogContent className="sm:max-w-[1600px] max-h-[95vh] w-full p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-              <Calendar className="w-7 h-7 text-blue-600" />
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] w-full p-0">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b bg-sap-shell">
+            <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl font-semibold text-sap-text">
+              <Calendar className="w-5 h-5 text-module-scheduling" />
               School Timetable Manager
             </DialogTitle>
-            <DialogDescription className="text-base">
-              Create and manage your complete school timetable with professional scheduling tools
+            <DialogDescription className="text-sm text-muted-foreground">
+              Create and maintain a clean weekly timetable for all classes, with conflict checks and mobile-friendly views.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="px-6 py-4 space-y-4">
+
+          <div className="px-4 sm:px-6 py-4 space-y-4">
             {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border-2 border-blue-200 shadow-sm">
-              <div className="flex flex-wrap gap-3">
-                <Button 
-                  size="sm" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-sap-shell rounded-xl border border-border shadow-sap-depth">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  className="bg-module-scheduling hover:bg-module-scheduling/90 text-white shadow-sm"
                   onClick={() => {
                     setScheduleSlotForm({
                       classId: '',
@@ -1500,10 +1500,10 @@ export function LearningHub() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Schedule Slot
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="border-blue-300 hover:bg-blue-50"
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-border hover:bg-muted/60"
                   onClick={async () => {
                     // Check for conflicts across all schedule slots
                     let conflictCount = 0;
@@ -1529,23 +1529,23 @@ export function LearningHub() {
                     }
                   }}
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2 text-orange-600" />
+                  <AlertTriangle className="w-4 h-4 mr-2 text-sap-critical" />
                   Check Conflicts
                 </Button>
-                <Button size="sm" variant="outline" className="border-green-300 hover:bg-green-50">
-                  <FileText className="w-4 h-4 mr-2 text-green-600" />
+                <Button size="sm" variant="outline" className="border-border hover:bg-muted/60">
+                  <FileText className="w-4 h-4 mr-2 text-module-reports" />
                   Export Timetable
                 </Button>
               </div>
-              
-              <div className="flex items-center gap-3">
-                <Label className="text-sm font-semibold text-gray-700">Filter:</Label>
-                <Select 
-                  value={scheduleFilter} 
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Filter</Label>
+                <Select
+                  value={scheduleFilter}
                   onValueChange={setScheduleFilter}
                 >
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
+                  <SelectTrigger className="w-32 sm:w-40">
+                    <SelectValue placeholder="All classes" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Classes</SelectItem>
@@ -1556,22 +1556,87 @@ export function LearningHub() {
               </div>
             </div>
 
-            {/* Timetable Grid - Professional Weekly View */}
-            <div className="border-2 border-gray-200 rounded-xl overflow-hidden shadow-xl bg-white">
-              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-4">
+            {/* Mobile-first day view */}
+            <div className="block md:hidden">
+              <Tabs defaultValue={String(new Date().getDay())}>
+                <TabsList className="w-full justify-start overflow-x-auto">
+                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                    <TabsTrigger key={day} value={String(day)} className="px-3 py-1.5">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                  <TabsContent key={day} value={String(day)} className="mt-3 space-y-2">
+                    {generateTimeSlots().map((slot) => {
+                      const slotItems = (scheduleSlots || []).filter(
+                        (s: any) =>
+                          s.day_of_week === day &&
+                          s.start_time >= slot.start &&
+                          s.start_time < slot.end
+                      );
+                      if (!slotItems.length) return null;
+                      return slotItems.map((scheduleSlot: any) => {
+                        const classInfo = userClasses?.find((c) => c.id === scheduleSlot.class_id);
+                        return (
+                          <Card
+                            key={scheduleSlot.id}
+                            className="border border-border shadow-sap-depth"
+                            onClick={() => {
+                              setSelectedScheduleSlot(scheduleSlot);
+                              setScheduleSlotForm({
+                                classId: scheduleSlot.class_id,
+                                dayOfWeek: scheduleSlot.day_of_week,
+                                startTime: scheduleSlot.start_time,
+                                endTime: scheduleSlot.end_time,
+                                roomNumber: scheduleSlot.room_number || '',
+                              });
+                              setCreateScheduleSlotOpen(true);
+                            }}
+                          >
+                            <CardContent className="py-2 px-3 flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {classInfo?.subject?.name || 'Unknown Subject'}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {classInfo?.sectionCode || 'N/A'} • Room {scheduleSlot.room_number || 'TBD'}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground shrink-0">
+                                {formatTime(scheduleSlot.start_time)}–{formatTime(scheduleSlot.end_time)}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      });
+                    })}
+                    {!(scheduleSlots || []).some((s: any) => s.day_of_week === day) && (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No classes scheduled for this day.
+                      </p>
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+
+            {/* Timetable Grid - Weekly view (desktop) */}
+            <div className="hidden md:block border border-border rounded-xl overflow-hidden shadow-sap-depth bg-card">
+              <div className="bg-sap-shell px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Weekly Timetable</h3>
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-                      <span>Live Now</span>
+                  <h3 className="text-sm font-semibold text-sap-text">Weekly timetable</h3>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-sap-positive" />
+                      <span>Live</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-module-scheduling" />
                       <span>Scheduled</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-orange-400"></div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-sap-critical" />
                       <span>Conflict</span>
                     </div>
                   </div>
@@ -1581,15 +1646,31 @@ export function LearningHub() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-100 border-b-2 border-gray-300">
-                      <th className="p-3 text-left font-bold text-gray-700 border-r-2 border-gray-300 min-w-[140px] sticky left-0 bg-gray-100 z-10">Time Slot</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Monday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Tuesday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Wednesday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Thursday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Friday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 border-r border-gray-300 min-w-[180px]">Saturday</th>
-                      <th className="p-3 text-center font-bold text-gray-700 min-w-[180px]">Sunday</th>
+                    <tr className="bg-muted border-b border-border">
+                      <th className="p-2.5 text-left text-xs font-semibold text-sap-text border-r border-border min-w-[120px] sticky left-0 bg-muted z-10">
+                        Time slot
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Monday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Tuesday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Wednesday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Thursday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Friday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text border-r border-border min-w-[140px]">
+                        Saturday
+                      </th>
+                      <th className="p-2.5 text-center text-xs font-semibold text-sap-text min-w-[140px]">
+                        Sunday
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1602,11 +1683,11 @@ export function LearningHub() {
                       const currentDayOfWeek = currentTime.getDay();
                       
                       return (
-                        <tr key={slotIdx} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="p-3 font-medium text-gray-700 border-r-2 border-gray-300 sticky left-0 bg-white z-10">
+                        <tr key={slotIdx} className="border-b border-border hover:bg-sap-shell/60">
+                          <td className="p-2.5 text-xs font-medium text-sap-text border-r border-border sticky left-0 bg-card z-10">
                             <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm">{slot.label}</span>
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <span>{slot.label}</span>
                             </div>
                           </td>
                           {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
@@ -1617,8 +1698,8 @@ export function LearningHub() {
                             );
                             
                             return (
-                              <td key={dayOfWeek} className="p-2 border-r border-gray-200 align-top">
-                                <div className="space-y-2 min-h-[60px]">
+                              <td key={dayOfWeek} className="p-2 border-r border-border align-top">
+                                <div className="space-y-1.5 min-h-[56px]">
                                   {daySlots.map((scheduleSlot: any) => {
                                     const classInfo = userClasses?.find(c => c.id === scheduleSlot.class_id);
                                     const isLive = isCurrentTimeSlot && currentDayOfWeek === dayOfWeek;
@@ -1627,12 +1708,12 @@ export function LearningHub() {
                                     return (
                                       <div
                                         key={scheduleSlot.id}
-                                        className={`p-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
+                                        className={`p-1.5 rounded-md border cursor-pointer transition-[background,border,box-shadow] hover:shadow-sap-depth ${
                                           isLive 
-                                            ? 'bg-green-100 border-green-400 ring-2 ring-green-300' 
+                                            ? 'bg-sap-positive/5 border-sap-positive'
                                             : hasConflict
-                                            ? 'bg-orange-100 border-orange-400 ring-2 ring-orange-300'
-                                            : 'bg-blue-50 border-blue-300 hover:border-blue-400'
+                                            ? 'bg-sap-critical/5 border-sap-critical'
+                                            : 'bg-sap-shell border-module-scheduling/40 hover:border-module-scheduling'
                                         }`}
                                         onClick={() => {
                                           setSelectedScheduleSlot(scheduleSlot);
@@ -1646,28 +1727,26 @@ export function LearningHub() {
                                           setCreateScheduleSlotOpen(true);
                                         }}
                                       >
-                                        <div className="font-semibold text-sm text-gray-900">
+                                        <div className="font-medium text-xs text-sap-text truncate">
                                           {classInfo?.subject?.name || 'Unknown Subject'}
                                         </div>
-                                        <div className="text-xs text-gray-600 mt-1">
+                                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
                                           {classInfo?.sectionCode || 'N/A'} • Room {scheduleSlot.room_number || 'TBD'}
                                         </div>
-                                        <div className="text-xs text-gray-500 mt-1">
+                                        <div className="text-[11px] text-muted-foreground mt-0.5">
                                           {formatTime(scheduleSlot.start_time)} - {formatTime(scheduleSlot.end_time)}
                                         </div>
                                         {isLive && (
-                                          <div className="flex items-center gap-1 mt-1">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                            <span className="text-xs font-medium text-green-700">Live</span>
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-sap-positive animate-pulse" />
+                                            <span className="text-[11px] font-medium text-sap-positive">Live</span>
                                           </div>
                                         )}
                                       </div>
                                     );
                                   })}
                                   {daySlots.length === 0 && (
-                                    <div className="text-center text-xs text-gray-400 py-2">
-                                      Available
-                                    </div>
+                                    <span className="block text-center text-[11px] text-muted-foreground py-1.5">Available</span>
                                   )}
                                 </div>
                               </td>
