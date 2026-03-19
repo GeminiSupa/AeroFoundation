@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { writeAuditLog } from './auditlogs';
+import { formatSupabaseError } from './errorFormat';
 
 export interface FeeStructure {
   id: string;
@@ -231,7 +232,7 @@ export async function getFeePayments(filters?: {
 
     return { success: true, data: payments };
   } catch (error) {
-    console.error('Error fetching fee payments:', error);
+    console.error('Error fetching fee payments:', formatSupabaseError(error));
     return {
       success: false,
       error: 'Failed to fetch fee payments',
@@ -387,7 +388,7 @@ export async function getPayrollRecords(filters?: {
 
     return { success: true, data: records };
   } catch (error) {
-    console.error('Error fetching payroll records:', error);
+    console.error('Error fetching payroll records:', formatSupabaseError(error));
     return {
       success: false,
       error: 'Failed to fetch payroll records',
@@ -514,7 +515,7 @@ export async function getFeeCollectionStats(
       },
     };
   } catch (error) {
-    console.error('Error fetching fee collection stats:', error);
+    console.error('Error fetching fee collection stats:', formatSupabaseError(error));
     return {
       success: false,
       error: 'Failed to fetch fee collection statistics',

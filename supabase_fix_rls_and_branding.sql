@@ -19,6 +19,16 @@ END $$;
 -- Admin needs full CRUD.
 -- =====================================================
 
+-- Ensure helper exists (idempotent)
+CREATE OR REPLACE FUNCTION public.is_admin_user()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('admin', 'owner', 'super_admin')
+  );
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
 DROP POLICY IF EXISTS "Admins manage students" ON public.students;
 CREATE POLICY "Admins manage students" ON public.students 
   FOR ALL USING (public.is_admin_user());
@@ -89,13 +99,48 @@ CREATE POLICY "Admins can delete branding" ON storage.objects
 
 -- =====================================================
 -- FIX 5: Ensure fee_payments and payroll have proper admin read access
--- These should already work through existing policies, but let's be explicit.
+-- Finance pages require: students + profiles directory + fee_payments + payroll.
 -- =====================================================
 
--- fee_payments: Already has "fee_payments_read" and "fee_payments_admin" 
--- payroll: Already has "payroll_admin"
--- No changes needed here; the RLS policies are fine.
--- The issue is likely that fee_payments joins students which has the recursion bug.
--- Fix 1 above resolves this.
+-- Profiles directory (needed for dropdowns + joins)
+DO $$
+BEGIN
+  IF to_regclass('public.profiles') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Authenticated can view profiles directory" ON public.profiles';
+    EXECUTE 'CREATE POLICY "Authenticated can view profiles directory" ON public.profiles FOR SELECT TO authenticated USING (true)';
+  END IF;
+END $$;
+
+-- Fee structures / payments / payroll policies (idempotent; only if tables exist)
+DO $$
+BEGIN
+  IF to_regclass('public.fee_structures') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "fee_structures_read" ON public.fee_structures';
+    EXECUTE 'CREATE POLICY "fee_structures_read" ON public.fee_structures FOR SELECT TO authenticated USING (true)';
+    EXECUTE 'DROP POLICY IF EXISTS "fee_structures_admin" ON public.fee_structures';
+    EXECUTE 'CREATE POLICY "fee_structures_admin" ON public.fee_structures FOR ALL USING (public.is_admin_user())';
+  END IF;
+
+  IF to_regclass('public.fee_payments') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "fee_payments_read" ON public.fee_payments';
+    EXECUTE ''CREATE POLICY "fee_payments_read" ON public.fee_payments FOR SELECT USING (
+      public.is_admin_user()
+      OR paid_by = auth.uid()
+      OR student_id IN (
+        SELECT id FROM public.students
+        WHERE id = auth.uid() OR parent_id = auth.uid()
+      )
+    )'';
+    EXECUTE 'DROP POLICY IF EXISTS "fee_payments_admin" ON public.fee_payments';
+    EXECUTE 'CREATE POLICY "fee_payments_admin" ON public.fee_payments FOR ALL USING (public.is_admin_user())';
+  END IF;
+
+  IF to_regclass('public.payroll') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "payroll_own" ON public.payroll';
+    EXECUTE 'CREATE POLICY "payroll_own" ON public.payroll FOR SELECT USING (employee_id = auth.uid())';
+    EXECUTE 'DROP POLICY IF EXISTS "payroll_admin" ON public.payroll';
+    EXECUTE 'CREATE POLICY "payroll_admin" ON public.payroll FOR ALL USING (public.is_admin_user())';
+  END IF;
+END $$;
 
 SELECT 'All fixes applied successfully!' AS status;

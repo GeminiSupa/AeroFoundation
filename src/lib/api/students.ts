@@ -1,4 +1,5 @@
 import { supabase, getSupabaseAdmin } from '../supabaseClient';
+import { formatSupabaseError } from './errorFormat';
 
 export interface StudentData {
   id: string;
@@ -40,8 +41,9 @@ export async function getStudents(): Promise<{ success: true; data: any[] } | { 
     }));
     return { success: true, data: list };
   } catch (err: any) {
-    console.error('getStudents error:', err);
-    return { success: false, error: err?.message || 'Failed to fetch students' };
+    const msg = formatSupabaseError(err);
+    console.error('getStudents error:', msg);
+    return { success: false, error: msg || 'Failed to fetch students' };
   }
 }
 
