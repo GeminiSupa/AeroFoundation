@@ -127,10 +127,8 @@ BEGIN
       CREATE POLICY "fee_payments_read" ON public.fee_payments FOR SELECT USING (
         public.is_admin_user()
         OR paid_by = auth.uid()
-        OR student_id IN (
-          SELECT id FROM public.students
-          WHERE id = auth.uid() OR parent_id = auth.uid()
-        )
+        OR student_id = auth.uid()
+        OR parent_id = auth.uid()
       )
     $sql$;
     EXECUTE 'DROP POLICY IF EXISTS "fee_payments_admin" ON public.fee_payments';

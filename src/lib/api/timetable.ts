@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { formatSupabaseError } from './errorFormat';
 
 export interface TimetableEntry {
   id: string;
@@ -322,7 +323,7 @@ export async function getClasses(): Promise<ApiResponse<any[]>> {
     }) || [];
     return { success: true, data: list };
   } catch (error) {
-    console.error('Error fetching classes:', error);
+    console.error('Error fetching classes:', formatSupabaseError(error));
     return {
       success: false,
       error: 'Failed to fetch classes',

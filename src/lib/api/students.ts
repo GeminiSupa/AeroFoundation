@@ -25,7 +25,7 @@ export async function getStudents(): Promise<{ success: true; data: any[] } | { 
       .from('students')
       .select(`
         *,
-        profile:profiles(id, full_name, email, avatar_url),
+        profile:profiles!students_id_fkey(id, full_name, email, avatar_url),
         class:classes(id, section_code, subject:subjects(name, code)),
         parent:profiles!students_parent_id_fkey(id, full_name, email, phone)
       `);

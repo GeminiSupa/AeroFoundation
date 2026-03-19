@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import type { UserRole } from '../../types';
+import { formatSupabaseError } from './errorFormat';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -496,8 +497,9 @@ export async function getClassesForUser(userId: string, role: UserRole): Promise
 
     return { success: true, data: filteredClasses };
   } catch (error: any) {
-    console.error('getClassesForUser error:', error);
-    return { success: false, error: error?.message || 'Failed to load classes' };
+    const msg = formatSupabaseError(error);
+    console.error('getClassesForUser error:', msg);
+    return { success: false, error: msg || 'Failed to load classes' };
   }
 }
 
@@ -573,8 +575,9 @@ export async function getUserSchedule(userId: string, role: UserRole, date?: str
 
     return { success: true, data: data || [] };
   } catch (error: any) {
-    console.error('getUserSchedule error:', error);
-    return { success: false, error: error?.message || 'Failed to load schedule' };
+    const msg = formatSupabaseError(error);
+    console.error('getUserSchedule error:', msg);
+    return { success: false, error: msg || 'Failed to load schedule' };
   }
 }
 
@@ -621,8 +624,9 @@ export async function getUserAssignments(userId: string, role: UserRole): Promis
 
     return { success: true, data: data || [] };
   } catch (error: any) {
-    console.error('getUserAssignments error:', error);
-    return { success: false, error: error?.message || 'Failed to load assignments' };
+    const msg = formatSupabaseError(error);
+    console.error('getUserAssignments error:', msg);
+    return { success: false, error: msg || 'Failed to load assignments' };
   }
 }
 
@@ -650,8 +654,9 @@ export async function getUserGrades(userId: string, role: UserRole): Promise<Api
 
     return { success: true, data: data || [] };
   } catch (error: any) {
-    console.error('getUserGrades error:', error);
-    return { success: false, error: error?.message || 'Failed to load grades' };
+    const msg = formatSupabaseError(error);
+    console.error('getUserGrades error:', msg);
+    return { success: false, error: msg || 'Failed to load grades' };
   }
 }
 
@@ -982,8 +987,9 @@ export async function getScheduleSlots(): Promise<ApiResponse<any[]>> {
     if (error) throw error;
     return { success: true, data: data || [] };
   } catch (error: any) {
-    console.error('getScheduleSlots error:', error);
-    return { success: false, error: error?.message || 'Failed to load schedule slots' };
+    const msg = formatSupabaseError(error);
+    console.error('getScheduleSlots error:', msg);
+    return { success: false, error: msg || 'Failed to load schedule slots' };
   }
 }
 

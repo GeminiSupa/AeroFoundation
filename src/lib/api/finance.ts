@@ -199,7 +199,7 @@ export async function getFeePayments(filters?: {
       .from('fee_payments')
       .select(`
         *,
-        student:students(id, parent_id, profiles(full_name, email)),
+        student:students(id, parent_id, profiles:profiles!students_id_fkey(full_name, email)),
         fee_structure:fee_structures(fee_type)
       `)
       .order('created_at', { ascending: false });
@@ -365,7 +365,7 @@ export async function getPayrollRecords(filters?: {
       .from('payroll')
       .select(`
         *,
-        employee:profiles(full_name, email)
+        employee:profiles!payroll_employee_id_fkey(full_name, email)
       `)
       .order('payment_date', { ascending: false });
 
