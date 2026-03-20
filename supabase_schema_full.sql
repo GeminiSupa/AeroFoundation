@@ -727,30 +727,56 @@ ALTER TABLE public.student_portfolios ENABLE ROW LEVEL SECURITY;
 -- =====================================================
 CREATE OR REPLACE FUNCTION public.is_admin_user()
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'owner', 'super_admin'));
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
+BEGIN
+  PERFORM set_config('row_security', 'off', true);
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role IN ('admin', 'owner', 'super_admin')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.is_teacher_of_class(target_class_id UUID)
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (SELECT 1 FROM public.classes WHERE id = target_class_id AND teacher_id = auth.uid());
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
+BEGIN
+  PERFORM set_config('row_security', 'off', true);
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.classes
+    WHERE id = target_class_id
+      AND teacher_id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.is_enrolled_in_class(target_class_id UUID)
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
+BEGIN
+  PERFORM set_config('row_security', 'off', true);
+  RETURN EXISTS (
     SELECT 1
     FROM public.class_enrollments
-    WHERE class_id = target_class_id AND student_id = auth.uid() AND status = 'active'
+    WHERE class_id = target_class_id
+      AND student_id = auth.uid()
+      AND status = 'active'
   );
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.is_parent_of_student(target_student_id UUID)
 RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.students s
-    WHERE s.id = target_student_id AND s.parent_id = auth.uid()
+BEGIN
+  PERFORM set_config('row_security', 'off', true);
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.students s
+    WHERE s.id = target_student_id
+      AND s.parent_id = auth.uid()
   );
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- =====================================================
 -- 14. RLS POLICIES - PROFILES & CORE
