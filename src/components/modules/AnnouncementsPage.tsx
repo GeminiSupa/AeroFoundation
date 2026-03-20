@@ -66,8 +66,8 @@ export function AnnouncementsPage() {
       author: a.author_name || 'Admin',
       authorRole: '-',
       date: (a.created_at || '').slice(0, 10),
-      priority: 'medium',
-      category: 'General',
+      priority: a.priority || 'medium',
+      category: a.category || 'General',
       audience: a.audience || ['admin','teacher','student','parent'],
       pinned: !!a.published,
       views: 0,
@@ -141,6 +141,8 @@ export function AnnouncementsPage() {
       body: formData.content,
       audience: formData.audiences.length ? formData.audiences : ['admin','teacher','student','parent'],
       published: true,
+      category: formData.category,
+      priority: formData.priority,
       author_id: user?.id || null,
       author_name: user?.name || null,
     } as any;
@@ -422,75 +424,141 @@ export function AnnouncementsPage() {
         <div className="text-destructive">{(error as any).message || 'Failed to load announcements'}</div>
       ) : null}
 
-      {/* Regular Announcements */}
       <div className="space-y-3">
         {pinnedAnnouncements.length > 0 && (
-          <h2>Recent Announcements</h2>
-        )}
-        {regularAnnouncements.length === 0 && !isLoading && !error && (
-          <Card>
-            <CardContent className="p-6 text-muted-foreground">No announcements yet</CardContent>
-          </Card>
-        )}
-        {regularAnnouncements.map((announcement) => (
-          <Card key={announcement.id} className="hover:border-primary/50 transition-colors">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CardTitle>{announcement.title}</CardTitle>
-                    <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
-                      {getPriorityIcon(announcement.priority)}
-                      <span className="ml-1">{announcement.priority}</span>
+          <>
+            <h2>Recent Announcements</h2>
+            {pinnedAnnouncements.map((announcement) => (
+              <Card key={announcement.id} className="hover:border-primary/50 transition-colors">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle>{announcement.title}</CardTitle>
+                        <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
+                          {getPriorityIcon(announcement.priority)}
+                          <span className="ml-1">{announcement.priority}</span>
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        Posted by {announcement.author} ({announcement.authorRole}) • {announcement.date}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="secondary">
+                      {announcement.category}
                     </Badge>
                   </div>
-                  <CardDescription>
-                    Posted by {announcement.author} ({announcement.authorRole}) • {announcement.date}
-                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p>{announcement.content}</p>
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        <span>For: {announcement.audience.join(', ')}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Megaphone className="h-4 w-4" />
+                        <span>{announcement.views} views</span>
+                      </div>
+                    </div>
+                    {canCreate && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditAnnouncement(announcement)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteAnnouncementId(announcement.id)}
+                          className="text-destructive hover:text-destructive/90"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {regularAnnouncements.length > 0 &&
+          regularAnnouncements.map((announcement) => (
+            <Card key={announcement.id} className="hover:border-primary/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CardTitle>{announcement.title}</CardTitle>
+                      <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
+                        {getPriorityIcon(announcement.priority)}
+                        <span className="ml-1">{announcement.priority}</span>
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      Posted by {announcement.author} ({announcement.authorRole}) • {announcement.date}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary">
+                    {announcement.category}
+                  </Badge>
                 </div>
-                <Badge variant="secondary">
-                  {announcement.category}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p>{announcement.content}</p>
-              <div className="flex items-center justify-between pt-3 border-t">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>For: {announcement.audience.join(', ')}</span>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p>{announcement.content}</p>
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>For: {announcement.audience.join(', ')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Megaphone className="h-4 w-4" />
+                      <span>{announcement.views} views</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Megaphone className="h-4 w-4" />
-                    <span>{announcement.views} views</span>
-                  </div>
+                  {canCreate && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditAnnouncement(announcement)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteAnnouncementId(announcement.id)}
+                        className="text-destructive hover:text-destructive/90"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {canCreate && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEditAnnouncement(announcement)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setDeleteAnnouncementId(announcement.id)}
-                      className="text-destructive hover:text-destructive/90"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
+
+        {pinnedAnnouncements.length === 0 &&
+          regularAnnouncements.length === 0 &&
+          !isLoading &&
+          !error && (
+            <Card>
+              <CardContent className="p-6 text-muted-foreground">No announcements yet</CardContent>
+            </Card>
+          )}
       </div>
 
       {/* Delete Confirmation Dialog */}

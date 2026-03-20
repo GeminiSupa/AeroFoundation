@@ -161,4 +161,13 @@ BEGIN
   END IF;
 END $$;
 
+-- Ensure announcements table supports UI fields
+DO $$
+BEGIN
+  IF to_regclass('public.announcements') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''General''';
+    EXECUTE 'ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT ''medium''';
+  END IF;
+END $$;
+
 SELECT 'All fixes applied successfully!' AS status;

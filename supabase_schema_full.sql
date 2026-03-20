@@ -432,6 +432,10 @@ CREATE TABLE IF NOT EXISTS public.announcements (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- UI expects category + priority on announcements
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General';
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'medium';
+
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -724,12 +728,12 @@ ALTER TABLE public.student_portfolios ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.is_admin_user()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'owner', 'super_admin'));
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
 
 CREATE OR REPLACE FUNCTION public.is_teacher_of_class(target_class_id UUID)
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (SELECT 1 FROM public.classes WHERE id = target_class_id AND teacher_id = auth.uid());
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
 
 CREATE OR REPLACE FUNCTION public.is_enrolled_in_class(target_class_id UUID)
 RETURNS BOOLEAN AS $$
@@ -738,7 +742,7 @@ RETURNS BOOLEAN AS $$
     FROM public.class_enrollments
     WHERE class_id = target_class_id AND student_id = auth.uid() AND status = 'active'
   );
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
 
 CREATE OR REPLACE FUNCTION public.is_parent_of_student(target_student_id UUID)
 RETURNS BOOLEAN AS $$
@@ -746,7 +750,7 @@ RETURNS BOOLEAN AS $$
     SELECT 1 FROM public.students s
     WHERE s.id = target_student_id AND s.parent_id = auth.uid()
   );
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, row_security = off;
 
 -- =====================================================
 -- 14. RLS POLICIES - PROFILES & CORE
@@ -803,10 +807,10 @@ CREATE POLICY "subjects_admin_manage" ON public.subjects FOR ALL USING (public.i
 
 DROP POLICY IF EXISTS "classes_read" ON public.classes;
 CREATE POLICY "classes_read" ON public.classes FOR SELECT USING (
-  public.is_admin_user() OR teacher_id = auth.uid() OR public.is_enrolled_in_class(id) OR
-  EXISTS (SELECT 1 FROM public.class_enrollments ce JOIN public.students s ON s.id = ce.student_id WHERE ce.class_id = classes.id AND s.parent_id = auth.uid()));
+  true
+);
 DROP POLICY IF EXISTS "classes_manage" ON public.classes;
-CREATE POLICY "classes_manage" ON public.classes FOR ALL USING (public.is_admin_user() OR teacher_id = auth.uid());
+CREATE POLICY "classes_manage" ON public.classes FOR ALL USING (public.is_admin_user());
 
 DROP POLICY IF EXISTS "enrollments_read" ON public.class_enrollments;
 CREATE POLICY "enrollments_read" ON public.class_enrollments FOR SELECT USING (

@@ -26,16 +26,14 @@ export async function getStudents(): Promise<{ success: true; data: any[] } | { 
       .select(`
         *,
         profile:profiles!students_id_fkey(id, full_name, email, avatar_url),
-        class:classes(id, section_code, subject:subjects(name, code)),
         parent:profiles!students_parent_id_fkey(id, full_name, email, phone)
       `);
 
     if (error) throw error;
     const list = (data || []).map((row: any) => ({
       ...row,
-      class_name: row.class
-        ? [row.class.subject?.name || row.class.subject?.code, row.class.section_code].filter(Boolean).join(' ')
-        : null,
+      // class_name was derived from classes; we now avoid the join to prevent RLS recursion
+      class_name: row.class_name ?? null,
       parent_name: row.parent?.full_name ?? null,
       parent_phone: row.parent?.phone ?? null,
     }));
